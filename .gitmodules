@@ -1,0 +1,3 @@
+[submodule "services/common/ezthreads"]
+	path = services/common/ezthreads
+	url = https://github.com/mr-highball/ezthreads.git
