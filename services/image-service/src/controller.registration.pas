@@ -1,20 +1,22 @@
 unit controller.registration;
 
-{$mode objfpc}{$H+}
+{$mode delphi}{$H+}
 
 interface
 
 uses
-  SysUtils, Classes, httpdefs, fpHTTP, fpWeb, SQLite3Conn, SQLDB;
+  SysUtils,
+  Classes,
+  httpdefs,
+  fpHTTP,
+  fpWeb,
+  controller.base;
 
 type
 
-  { TFPWebModule1 }
+  { TRegistrationController }
 
-  TFPWebModule1 = class(TFPWebModule)
-    connection: TSQLite3Connection;
-    query: TSQLQuery;
-    transaction: TSQLTransaction;
+  TRegistrationController = class(TBaseController)
   private
 
   public
@@ -22,13 +24,13 @@ type
   end;
 
 var
-  FPWebModule1: TFPWebModule1;
+  RegistrationController: TRegistrationController;
 
 implementation
 
 {$R *.lfm}
 
 initialization
-  RegisterHTTPModule('TFPWebModule1', TFPWebModule1);
+  RegisterHTTPModule(GetControllerRoute('registration'), TRegistrationController);
 end.
 

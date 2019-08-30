@@ -1,4 +1,4 @@
-object FPWebModule1: TFPWebModule1
+object RegistrationController: TRegistrationController
   OldCreateOrder = False
   Actions = <>
   CreateSession = False
@@ -6,22 +6,4 @@ object FPWebModule1: TFPWebModule1
   HorizontalOffset = 1627
   VerticalOffset = 335
   Width = 577
-  object connection: TSQLite3Connection
-    Connected = False
-    LoginPrompt = False
-    KeepConnection = False
-    Left = 72
-    Top = 24
-  end
-  object transaction: TSQLTransaction
-    Active = False
-    Left = 224
-    Top = 24
-  end
-  object query: TSQLQuery
-    FieldDefs = <>
-    Params = <>
-    Left = 352
-    Top = 24
-  end
 end

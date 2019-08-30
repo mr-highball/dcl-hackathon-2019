@@ -1,0 +1,9 @@
+object ImageController: TImageController
+  OldCreateOrder = False
+  Actions = <>
+  CreateSession = False
+  Height = 414
+  HorizontalOffset = 1551
+  VerticalOffset = 394
+  Width = 587
+end
