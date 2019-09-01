@@ -1,0 +1,7 @@
+inherited AuthController: TAuthController
+  OnGetAction = nil
+  Height = 323
+  HorizontalOffset = 1493
+  VerticalOffset = 418
+  Width = 469
+end

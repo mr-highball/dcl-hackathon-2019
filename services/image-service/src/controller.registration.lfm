@@ -1,7 +1,4 @@
-object RegistrationController: TRegistrationController
-  OldCreateOrder = False
-  Actions = <>
-  CreateSession = False
+inherited RegistrationController: TRegistrationController
   Height = 511
   HorizontalOffset = 1627
   VerticalOffset = 335

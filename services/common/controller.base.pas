@@ -9,13 +9,22 @@ uses
   Classes,
   httpdefs,
   fpHTTP,
-  fpWeb, SQLite3Conn,
+  fpWeb,
+  SQLite3Conn,
   SQLDB,
-  eventlog;
+  eventlog,
+  controller.dto;
 
 type
 
-  TControllerLogType = (clInfo, clWarn, clError);
+  //controller log types
+  TControllerLogType = (
+    clInfo,
+    clWarn,
+    clError
+  );
+
+  //set of log types used by controller to determine what to log
   TControllerLogTypes = set of TControllerLogType;
 
   { TAction }
@@ -31,6 +40,7 @@ type
     property Action : TWebActionEvent read FAction write FAction;
   end;
 
+  //controller action array
   TActions = TArray<TAction>;
 
   { TBaseController }
@@ -42,8 +52,13 @@ type
     connection: TSQLite3Connection;
     transaction: TSQLTransaction;
     //default health check event
+    procedure DataModuleGetAction(Sender: TObject; ARequest: TRequest;
+      var ActionName: String);
     procedure HealthCheck(Sender : TObject; ARequest : TRequest;
       AResponse : TResponse; Var Handled : Boolean);
+  public
+    const
+      PROP_RESULT = 'result';
   strict private
     FRoot : String;
     FName : String;
@@ -61,8 +76,6 @@ type
 
     //create the db if the file doesn't exist
     procedure CreateDB;
-
-
   strict protected
 
     (*
@@ -79,6 +92,8 @@ type
     //log error messages
     procedure LogError(Const AMsg : String);
 
+    procedure LogRequester(Const AMsg : String; Const ARequest : TRequest);
+
     (*
       raw sql commands
       --------------------------------------------------------------------------
@@ -89,6 +104,22 @@ type
 
     //runs non-blocking sql that provides only evidence in the log a failure occurred
     procedure FireAndForget(Const ASQL : String);
+
+    (*
+      will execute and open a query that returns a result set. this will be
+      returned in a json object where PROP_RESULT is a json array to
+      object representations of the rows
+    *)
+    function GetSQLResultsJSON(Const ASQL : String; Out Data : String;
+      Out Error : String) : Boolean;
+
+    (*
+      helper methods for children
+      --------------------------------------------------------------------------
+    *)
+
+    //helper method for returning a json object with an error result
+    function GetErrorJSON(Const AError : String) : String;
 
     (*
       children override these methods
@@ -115,6 +146,7 @@ type
     //full path to the db file (root + delim + dbname)
     property FullPath : String read GetFullPath;
 
+    //types of logging to perform
     property LogTypes : TControllerLogTypes read GetLogTypes write SetLogTypes;
 
     (*
@@ -124,26 +156,31 @@ type
 
     (*
       performs any initialization step required to the database file
-      ensuring future queries have everything they need to operate
+      ensuring future queries have everything they need to operate,
+      as well as setting up actions
     *)
-    procedure Setup;
+    procedure SetupController;
 
-    constructor Create(AOwner: TComponent); override;
+    constructor Create; virtual; overload;
+    constructor Create(AOwner: TComponent); override; overload;
     destructor Destroy; override;
   end;
 
 var
   DEFAULT_DB_NAME : String;
 
-function GetControllerRoute(Const AControllerName : String) : String;
+function GetControllerRoute(Const AAction : String) : String;
 
 implementation
+uses
+  fpjson,
+  jsonparser;
 var
   FLog : TEventLog; //log singleton
 
-function GetControllerRoute(const AControllerName: String): String;
+function GetControllerRoute(const AAction: String): String;
 begin
-  Result := 'controller/' + AControllerName;
+  Result := 'controller/' + AAction;
 end;
 
 {$R *.lfm}
@@ -204,7 +241,10 @@ procedure TBaseController.CreateDB;
 begin
   //set to default if caller hasn't specified
   if FName.IsEmpty then
+  begin
+    LogInfo('CreateDB::database name is default [' + DEFAULT_DB_NAME + ']');
     FName := DEFAULT_DB_NAME;
+  end;
 
   connection.Close(true);
   connection.DatabaseName := FullPath;
@@ -215,13 +255,33 @@ end;
 procedure TBaseController.HealthCheck(Sender: TObject; ARequest: TRequest;
   AResponse: TResponse; var Handled: Boolean);
 begin
-  Handled := True;
-  AResponse.ContentType := 'application/json';
-  AResponse.Content := '{"status" : "OK"}';
+  try
+    LogRequester('HealthCheck::', ARequest);
+    Handled := True;
+    AResponse.ContentType := 'application/json';
+    AResponse.Content := '{"status" : "OK"}';
+  except on E : Exception do
+    AResponse.Content := GetErrorJSON(E.Message);
+  end;
+end;
+
+procedure TBaseController.DataModuleGetAction(Sender: TObject;
+  ARequest: TRequest; var ActionName: String);
+var
+  LAction: TFPWebAction;
+begin
+  LogRequester('GetAction::', ARequest);
+  LAction := Actions.FindAction(ActionName);
+
+  if not Assigned(LAction) then
+    LogWarn('GetAction::unable to find action [' + ActionName + '] check spelling?');
 end;
 
 procedure TBaseController.LogInfo(const AMsg: String);
 begin
+  if not (clInfo in FLogTypes) then
+    Exit;
+
   while FLog.Active do
     Sleep(5);
 
@@ -230,9 +290,9 @@ begin
   try
     FLog.AppendContent:=True;
     FLog.LogType:=ltFile;
-    FLog.FileName:=ExtractFileDir(ParamStr(0)) + PathDelim + DataBaseName + '_' + FormatDateTime('mm_dd_yyyy',Now) + '.log';
+    FLog.FileName:=ExtractFileDir(ParamStr(0)) + PathDelim + DataBaseName.Split('.')[0] + '_' + FormatDateTime('mm_dd_yyyy',Now) + '.log';
     FLog.Active:=True;
-    FLog.Info(AMsg);
+    FLog.Info(Self.ClassName + '::' + AMsg);
   finally
     FLog.Active := False;
   end;
@@ -240,6 +300,9 @@ end;
 
 procedure TBaseController.LogWarn(const AMsg: String);
 begin
+  if not (clWarn in FLogTypes) then
+    Exit;
+
   while FLog.Active do
     Sleep(5);
 
@@ -247,9 +310,9 @@ begin
   try
     FLog.AppendContent:=True;
     FLog.LogType:=ltFile;
-    FLog.FileName:=ExtractFileDir(ParamStr(0)) + PathDelim + DataBaseName + '_' + FormatDateTime('mm_dd_yyyy',Now) + '.log';
+    FLog.FileName:=ExtractFileDir(ParamStr(0)) + PathDelim + DataBaseName.Split('.')[0] + '_' + FormatDateTime('mm_dd_yyyy',Now) + '.log';
     FLog.Active:=True;
-    FLog.Warning(AMsg);
+    FLog.Warning(Self.ClassName + '::' + AMsg);
   finally
     FLog.Active := False;
   end;
@@ -257,6 +320,9 @@ end;
 
 procedure TBaseController.LogError(const AMsg: String);
 begin
+  if not (clError in FLogTypes) then
+    Exit;
+
   while FLog.Active do
     Sleep(5);
 
@@ -264,12 +330,29 @@ begin
   try
     FLog.AppendContent:=True;
     FLog.LogType:=ltFile;
-    FLog.FileName:=ExtractFileDir(ParamStr(0)) + PathDelim + DataBaseName + '_' + FormatDateTime('mm_dd_yyyy',Now) + '.log';
+    FLog.FileName:=ExtractFileDir(ParamStr(0)) + PathDelim + DataBaseName.Split('.')[0] + '_' + FormatDateTime('mm_dd_yyyy',Now) + '.log';
     FLog.Active:=True;
-    FLog.Error(AMsg);
+    FLog.Error(Self.ClassName + '::' +AMsg);
   finally
     FLog.Active := False;
   end;
+end;
+
+procedure TBaseController.LogRequester(const AMsg: String;
+  const ARequest: TRequest);
+var
+  LMsg: String;
+  I: Integer;
+begin
+  LMsg := AMsg + sLineBreak +
+    'Host:' + sLineBreak + ARequest.GetVariableHeaderName(hvRemoteHost) +
+    'Address:' + sLineBreak + ARequest.GetVariableHeaderName(hvRemoteAddress) + sLineBreak +
+    'Fields:' + sLineBreak;
+  {$Warnings OFF}
+  for I := 0 to Pred(ARequest.FieldCount) do
+    LMsg := LMsg + 'Name = ' + ARequest.FieldNames[I] + ' Value = ' + ARequest.FieldValues[I] + sLineBreak;
+  {$Warnings ON}
+  LogInfo(LMsg);
 end;
 
 function TBaseController.ExecuteSQL(const ASQL: String; out Error: String): Boolean;
@@ -290,10 +373,7 @@ begin
       connection.Close;
     end;
   except on E : Exception do
-  begin
     Error := E.Message;
-    LogError(Error);
-  end;
   end;
 end;
 
@@ -305,6 +385,35 @@ begin
   ExecuteSQL(ASQL, LError); //todo - make this async
 end;
 
+function TBaseController.GetSQLResultsJSON(const ASQL: String;
+  out Data : String; out Error: String): Boolean;
+var
+  LObj : TJSONObject;
+begin
+  Result := False;
+  Data := '{"' + PROP_RESULT + '" : []}'; //empty
+
+  LObj := TJSONObject.Create;
+  try
+    try
+
+      Result := True;
+    except on E : Exception do
+      Error := E.Message;
+    end;
+  finally
+    LObj.Free;
+  end;
+end;
+
+function TBaseController.GetErrorJSON(const AError: String): String;
+var
+  LError : TErrorResponse;
+begin
+  LError.Message := AError;
+  Result := LError.ToJSON();
+end;
+
 procedure TBaseController.DoInitialize();
 begin
   //nothing
@@ -314,6 +423,8 @@ function TBaseController.DoInitializeActions(): TActions;
 var
   LHealth : TAction;
 begin
+  //init result
+  Result := [];
   SetLength(Result, 1);
 
   //define the health action which outputs all available actions
@@ -324,14 +435,14 @@ begin
   Result[0] := LHealth;
 end;
 
-procedure TBaseController.Setup;
+procedure TBaseController.SetupController;
 var
   LActions : TActions;
   I: Integer;
   LAction: TFPWebAction;
 begin
   try
-    //before children Setup is called, we need to ensure the
+    //before children SetupController is called, we need to ensure the
     //database exists, and if not, create it
     if not DBExists then
       CreateDB;
@@ -339,7 +450,7 @@ begin
     //attempt to call child method
     DoInitialize;
 
-    //Setup the actions for this controller
+    //SetupController the actions for this controller
     Actions.Clear; //clear existing if any
     LActions := DoInitializeActions; //get child actions
 
@@ -351,12 +462,19 @@ begin
 
       //first action will be the default
       if I = 0 then
+      begin
+        Actions.DefActionWhenUnknown := True;
         LAction.Default := True;
+      end;
 
       //configure the action
       LAction.Name := LActions[I].Name;
       LAction.OnRequest := LActions[I].Action;
     end;
+
+    //log the registered actions
+    for I := 0 to Pred(Actions.Count) do
+      LogInfo('SetupController::Action [' + Actions[I].Name + '] is index [' + IntToStr(I) + ']');
   except on E : Exception do
   begin
     LogError(E.Message); //log
@@ -365,13 +483,19 @@ begin
   end;
 end;
 
+constructor TBaseController.Create;
+begin
+  Create(nil);
+end;
+
 constructor TBaseController.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+  FLogTypes := [clInfo, clWarn, clError];
 
   //we need at least one default action defined in base before calling this
   //ie. the health check will be defined at the design level
-  Setup;
+  SetupController;
 end;
 
 destructor TBaseController.Destroy;
@@ -381,7 +505,6 @@ begin
 end;
 
 initialization
-  RegisterHTTPModule('controller', TBaseController);
   DEFAULT_DB_NAME := 'database.sqlite3';
   FLog := TEventLog.Create(nil);
 finalization

@@ -1,4 +1,4 @@
-program image_service;
+program auth_service;
 
 {$mode delphi}{$H+}
 
@@ -7,12 +7,10 @@ uses
   fphttpapp,
   config.types,
   controller.base,
-  controller.registration,
-  controller.status,
-  controller.image;
+  controller.auth;
 
 const
-  CONFIG_NAME = 'image_service_config.json';
+  CONFIG_NAME = 'auth_service_config.json';
 var
   LConfig : IJSONConfig;
   LError: String;
@@ -22,8 +20,9 @@ begin
 
   if not FileExists(CONFIG_NAME) then
   begin
-    LConfig.UpsertValue('port', '8080'); //set default port
-    LConfig.UpsertValue('datbaseName', 'image_service.sqlite3'); //default db name
+    LConfig.UpsertValue('port', '8081'); //set default port
+    LConfig.UpsertValue('databaseName', 'auth_service.sqlite3'); //default db name
+    LConfig.UpsertValue('tokenExpirationTime', IntToStr(5 * 60 * 1000)); //default expiration
 
     if not LConfig.SaveToFile(CONFIG_NAME, LError) then
       WriteLn(LError);
@@ -35,10 +34,13 @@ begin
   //set the database name for the image service
   DEFAULT_DB_NAME := LConfig['databaseName'];
 
+  //set the expiration time of the token
+  EXPIRATION_TIME := StrToInt(LConfig['tokenExpirationTime']);
+
   //init web app
-  Application.Title:='image_service';
-  Application.Port:=StrToIntDef(LConfig['port'], 8080); //shouldn't fail, but default here
-  Application.Threaded:=True; //thread for every request
+  Application.Title:='auth_service';
+  Application.Port:=StrToIntDef(LConfig['port'], 8081);;
+  Application.Threaded:=True;
   Application.Initialize;
   Application.Run;
 end.

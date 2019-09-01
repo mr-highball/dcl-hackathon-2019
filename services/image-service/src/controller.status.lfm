@@ -1,7 +1,4 @@
-object StatusController: TStatusController
-  OldCreateOrder = False
-  Actions = <>
-  CreateSession = False
+inherited StatusController: TStatusController
   Height = 462
   HorizontalOffset = 1483
   VerticalOffset = 329

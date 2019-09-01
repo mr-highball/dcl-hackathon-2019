@@ -8,23 +8,25 @@ object BaseController: TBaseController
       Template.AllowTagParams = False
     end>
   ActionVar = 'a'
+  OnGetAction = DataModuleGetAction
   CreateSession = False
-  Height = 413
-  HorizontalOffset = 1606
-  VerticalOffset = 410
-  Width = 584
+  Height = 826
+  HorizontalOffset = 1463
+  VerticalOffset = 471
+  Width = 1168
+  PPI = 192
   object connection: TSQLite3Connection
     Connected = False
     LoginPrompt = False
     KeepConnection = False
     Transaction = transaction
-    Left = 176
-    Top = 128
+    Left = 352
+    Top = 256
   end
   object transaction: TSQLTransaction
     Active = False
     Database = connection
-    Left = 328
-    Top = 128
+    Left = 656
+    Top = 256
   end
 end

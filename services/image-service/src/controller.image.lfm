@@ -1,7 +1,4 @@
-object ImageController: TImageController
-  OldCreateOrder = False
-  Actions = <>
-  CreateSession = False
+inherited ImageController: TImageController
   Height = 414
   HorizontalOffset = 1551
   VerticalOffset = 394

@@ -8,8 +8,7 @@
         <MainUnitHasCreateFormStatements Value="False"/>
       </Flags>
       <SessionStorage Value="InProjectDir"/>
-      <AutoCreateForms Value="False"/>
-      <Title Value="image_service"/>
+      <Title Value="auth_service"/>
       <UseAppBundle Value="False"/>
       <ResourceType Value="res"/>
     </General>
@@ -46,9 +45,6 @@
               <TrashVariables Value="True"/>
               <UseExternalDbgSyms Value="True"/>
             </Debugging>
-            <Options>
-              <PassLinkerOptions Value="True"/>
-            </Options>
           </Linking>
         </CompilerOptions>
       </Item>
@@ -77,9 +73,6 @@
               <GenerateDebugInfo Value="False"/>
             </Debugging>
             <LinkSmart Value="True"/>
-            <Options>
-              <PassLinkerOptions Value="True"/>
-            </Options>
           </Linking>
         </CompilerOptions>
       </Item>
@@ -102,51 +95,18 @@
     </RequiredPackages>
     <Units>
       <Unit>
-        <Filename Value="image_service.lpr"/>
+        <Filename Value="auth_service.lpr"/>
         <IsPartOfProject Value="True"/>
       </Unit>
       <Unit>
-        <Filename Value="src\controller.registration.pas"/>
+        <Filename Value="src\controller.auth.pas"/>
         <IsPartOfProject Value="True"/>
-        <ComponentName Value="RegistrationController"/>
+        <ComponentName Value="AuthController"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="DataModule"/>
       </Unit>
       <Unit>
-        <Filename Value="src\controller.status.pas"/>
-        <IsPartOfProject Value="True"/>
-        <ComponentName Value="StatusController"/>
-        <HasResources Value="True"/>
-        <ResourceBaseClass Value="DataModule"/>
-      </Unit>
-      <Unit>
-        <Filename Value="src\controller.image.pas"/>
-        <IsPartOfProject Value="True"/>
-        <ComponentName Value="ImageController"/>
-        <HasResources Value="True"/>
-        <ResourceBaseClass Value="DataModule"/>
-      </Unit>
-      <Unit>
-        <Filename Value="..\common\controller.base.pas"/>
-        <IsPartOfProject Value="True"/>
-        <ComponentName Value="BaseController"/>
-        <HasResources Value="True"/>
-        <ResourceBaseClass Value="DataModule"/>
-      </Unit>
-      <Unit>
-        <Filename Value="..\common\config.utils.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit>
-      <Unit>
-        <Filename Value="..\common\config.types.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit>
-      <Unit>
-        <Filename Value="..\common\config.json.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit>
-      <Unit>
-        <Filename Value="..\common\config.base.pas"/>
+        <Filename Value="..\common\controller.dto.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>
     </Units>
@@ -164,11 +124,6 @@
         <SyntaxMode Value="Delphi"/>
       </SyntaxOptions>
     </Parsing>
-    <Linking>
-      <Options>
-        <PassLinkerOptions Value="True"/>
-      </Options>
-    </Linking>
   </CompilerOptions>
   <Debugging>
     <Exceptions Count="3">
