@@ -14,13 +14,28 @@ type
     common error response structure
   *)
   TErrorResponse = record
-  private
+  strict private
     FMsg: String;
   public
     const
       PROP_ERROR = 'error';
   public
     property Message : String read FMsg write FMsg;
+
+    function ToJSON() : String;
+    procedure FromJSON(Const AJSON : String);
+  end;
+
+  { TBoolResponse }
+
+  TBoolResponse = record
+  public
+    const
+      PROP_SUCCESS = 'success';
+  strict private
+    FSuccess : Boolean;
+  public
+    property Success : Boolean read FSuccess write FSuccess;
 
     function ToJSON() : String;
     procedure FromJSON(Const AJSON : String);
@@ -37,9 +52,13 @@ type
       PROP_RESULT = 'result';
   private
     FRows : TArray<String>;
+    function GetCount: Integer;
+    function GetRow(const AIndex : Integer): String;
   public
     //single row json object representations
     property Rows : TArray<String> read FRows write FRows;
+    property Row[Const AIndex : Integer] : String read GetRow; default;
+    property Count : Integer read GetCount;
 
     procedure AddRow(Const ARowJSON : String);
     function ToJSON() : String;
@@ -51,7 +70,51 @@ uses
   fpjson,
   jsonparser;
 
+{ TBoolResponse }
+
+function TBoolResponse.ToJSON(): String;
+begin
+  with TJSONObject.Create do
+  begin
+    Add(PROP_SUCCESS, FSuccess);
+    Result := AsJSON;
+    Free;
+  end;
+end;
+
+procedure TBoolResponse.FromJSON(const AJSON: String);
+var
+  LObj : TJSONData;
+begin
+  LObj := GetJSON(AJSON);
+
+  if not Assigned(LObj) then
+    raise Exception.Create('TBoolResponse::FromJSON::invalid json for error');
+
+  if not (LObj.JSONType = jtObject) then
+  begin
+    LObj.Free;
+    raise Exception.Create('TBoolResponse::FromJSON::json is not object');
+  end;
+
+  try
+    FSuccess := TJSONObject(LObj).Get(PROP_SUCCESS);
+  finally
+    LObj.Free;
+  end;
+end;
+
 { TDatasetResponse }
+
+function TDatasetResponse.GetRow(const AIndex : Integer): String;
+begin
+  Result := FRows[AIndex];
+end;
+
+function TDatasetResponse.GetCount: Integer;
+begin
+  Result := Length(FRows);
+end;
 
 procedure TDatasetResponse.AddRow(const ARowJSON: String);
 begin

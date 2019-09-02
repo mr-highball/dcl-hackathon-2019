@@ -9,33 +9,19 @@ uses
   Classes,
   httpdefs,
   fpHTTP,
-  controller.base;
+  controller.base,
+  controller.auth.dto;
 
 type
 
-  { TToken }
-
-  TToken = record
-  public
-    const
-      PROP_TOKEN = 'token';
-      PROP_EXPIRES = 'expires';
-  strict private
-    FExp: String;
-    FToken: String;
-  public
-    //guid identifier
-    property Token : String read FToken write FToken;
-
-    //expiration time in milliseconds
-    property Expires : String read FExp write FExp;
-
-    function ToJSON : String;
-    procedure FromJSON(Const AJSON : String);
-  end;
-
   { TAuthController }
-
+  (*
+    auth controller handles generating / validating of tokens,
+    as well as providing a means to "reverse lookup" for initial request
+    user and parcel info. other services requiring validation for actions
+    can easily integrate that functionality by using the auth.dto's and
+    required methods
+  *)
   TAuthController = class(TBaseController)
   strict private
     procedure InitAuthTable;
@@ -57,7 +43,14 @@ type
 
     //performs authentication, and returns token
     function Authenticate(Const AUserKey : String;
-      Const AParcelIdentity : String; Out Token : TToken) : Boolean;
+      Const AParcelIdentity : String; Out Response : TAuthResponse) : Boolean;
+
+    //checks to make sure a token exists and hasn't expired
+    function Validate(Const AToken : String) : Boolean;
+
+    //provided a token, will lookup the details associated with the
+    //original request
+    function Lookup(Const AToken : String; Out Details : TAuthRequest) : Boolean;
   public
 
   end;
@@ -65,54 +58,17 @@ type
 var
   AuthController: TAuthController;
   EXPIRATION_TIME : Integer;
+
 implementation
 uses
   fpjson,
   jsonparser,
   DateUtils,
-  FPIndexer;
+  FPIndexer,
+  LazSysUtils,
+  controller.dto;
 
 {$R *.lfm}
-
-{ TToken }
-
-function TToken.ToJSON: String;
-var
-  LObj: TJSONObject;
-begin
-  LObj := TJSONObject.Create;
-  try
-    LObj.Add(PROP_TOKEN, TJSONString.Create(FToken));
-    LObj.Add(PROP_EXPIRES, TJSONString.Create(FExp));
-
-    Result := LObj.AsJSON;
-  finally
-    LObj.Free;
-  end;
-end;
-
-procedure TToken.FromJSON(const AJSON: String);
-var
-  LObj: TJSONData;
-begin
-  LObj := GetJSON(AJSON);
-
-  if not Assigned(LObj) then
-    Raise Exception.Create('invalid json form TToken');
-
-  if not (LObj.JSONType = jtObject) then
-  begin
-    LObj.Free;
-    Raise Exception.Create('json is not valid object');
-  end;
-
-  try
-    FExp := TJSONObject(LObj).Get(PROP_EXPIRES);
-    FToken := TJSONObject(LObj).Get(PROP_TOKEN);
-  finally
-    LObj.Free;
-  end;
-end;
 
 { TAuthController }
 
@@ -127,8 +83,8 @@ begin
     ' "token" varchar(128) NOT NULL,' +
     ' "user_key" varchar(50) NOT NULL,' +
     ' "parcel_identity" varchar(25) NOT NULL,' +
-    ' "expire_date" datetime NOT NULL DEFAULT (datetime(''now'',''localtime'')),' +
-    ' "create_date" datetime NOT NULL DEFAULT (datetime(''now'',''localtime'')));',
+    ' "expire_date" datetime NOT NULL DEFAULT (datetime("now")),' +
+    ' "create_date" datetime NOT NULL DEFAULT (datetime("now")));',
     LError
   );
 end;
@@ -136,47 +92,87 @@ end;
 procedure TAuthController.AuthAction(Sender: TObject; ARequest: TRequest;
   AResponse: TResponse; var Handled: Boolean);
 var
-  LToken: TToken;
+  LReq : TAuthRequest;
+  LResp: TAuthResponse;
 begin
   try
     AResponse.ContentType := 'application/json';
     Handled := True;
     LogRequester('AuthAction::', ARequest);
-    Authenticate('testKey', '0,0', LToken);
+
+    //try to deserialize the request
+    LReq.FromJSON(ARequest.Content);
+
+    //don't expose any implementation details to caller in failure case
+    //since auth method will do any logging it needs
+    if not Authenticate(LReq.UserKey, LReq.ParcelID, LResp) then
+      AResponse.Content := GetErrorJSON('unable to authenticate')
+    else
+      AResponse.Content := LResp.ToJSON; //success
+
   except on E : Exception do
   begin
     LogError(E.Message);
-    AResponse.Content := GetErrorJSON(E.Message);
+    AResponse.Content := GetErrorJSON('unable to authenticate - server failure');
   end
   end;
 end;
 
 procedure TAuthController.LookupAction(Sender: TObject; ARequest: TRequest;
   AResponse: TResponse; var Handled: Boolean);
+var
+  LLookup : TLookupRequest;
+  LDetails: TAuthRequest;
 begin
   try
     AResponse.ContentType := 'application/json';
     Handled := True;
     LogRequester('LookupAction::', ARequest);
+
+    //try to parse the request
+    LLookup.FromJSON(ARequest.Content);
+
+    //lookup will handle logging errors, return invalid if failure
+    if not Lookup(LLookup.Token, LDetails) then
+      AResponse.Content := GetErrorJSON('token is invalid')
+    else
+      AResponse.Content := LDetails.ToJSON;
   except on E : Exception do
   begin
     LogError(E.Message);
-    AResponse.Content := GetErrorJSON(E.Message);
+    AResponse.Content := GetErrorJSON('unable to lookup - server failure');
   end
   end;
 end;
 
 procedure TAuthController.ValidateAction(Sender: TObject; ARequest: TRequest;
   AResponse: TResponse; var Handled: Boolean);
+var
+  LValidate : TValidateRequest;
+  LResult : TBoolResponse;
 begin
   try
+    LResult.Success := False;
+
     AResponse.ContentType := 'application/json';
     Handled := True;
     LogRequester('ValidateAction::', ARequest);
+
+    //try and parse the token
+    LValidate.FromJSON(ARequest.Content);
+
+    //try to validate
+    if not Validate(LValidate.Token) then
+      AResponse.Content := LResult.ToJSON
+    else
+    begin
+      LResult.Success := True;
+      AResponse.Content := LResult.ToJSON;
+    end;
   except on E : Exception do
   begin
     LogError(E.Message);
-    AResponse.Content := GetErrorJSON(E.Message);
+    AResponse.Content := GetErrorJSON('unable to validate - server error');
   end
   end;
 end;
@@ -218,30 +214,67 @@ begin
 end;
 
 function TAuthController.Authenticate(const AUserKey: String;
-  const AParcelIdentity: String; out Token: TToken): Boolean;
+  const AParcelIdentity: String; out Response: TAuthResponse): Boolean;
 var
   LError: String;
   LExp: TDateTime;
+  LData : TDatasetResponse;
+  LObj: TJSONData;
 begin
   Result := False;
 
   try
-    //first look to see if we have a valid token still
-    //...
+    //first look to see if we have a valid Response still. we add 30 seconds
+    //to the filter so that the caller doesn't get jipped from the web
+    //call delay, returning an expired token
+    if GetSQLResultsJSON(
+      'SELECT token, expire_date FROM auth WHERE user_key = ' + QuotedStr(AUserKey) +
+      ' AND expire_date > DATETIME("now", "+30 seconds")' +
+      ' ORDER BY id DESC LIMIT 1;',
+      LData,
+      LError
+    ) then
+    begin
+      if LData.Count > 0 then
+      begin
+        //get the sql row to a json object
+        LObj := GetJSON(LData[0]);
 
-    //otherwise we need to create a token and store it in the db so
+        if Assigned(LObj) then
+        begin
+          try
+            //as long as we have a valid object we can get the properties
+            if LObj.JSONType = jtObject then
+            begin
+              Response.Token := TJSONObject(LObj).Get('token');
+              Response.Expires := TJSONObject(LObj).Get('expire_date');
+
+              //found non-expired token, success
+              Result := True;
+              Exit;
+            end
+            else
+              LogWarn('Authenticate::auth result not an object');
+          finally
+            LObj.Free;
+          end;
+        end;
+      end;
+    end;
+
+    //otherwise we need to create a Response and store it in the db so
     //start with a time, and make sure it's in utc
-    LExp := IncMilliSecond(Now, EXPIRATION_TIME);
-    Token.Expires := DateToISO8601(LExp);
-    Token.Token := TGuid.NewGuid.ToString();
+    LExp := IncMilliSecond(NowUTC, EXPIRATION_TIME);
+    Response.Expires := DateToISO8601(LExp);
+    Response.Token := TGuid.NewGuid.ToString();
 
-    //attempt to record the token
+    //attempt to record the Response
     if not ExecuteSQL(
       'INSERT INTO auth(token, user_key, parcel_identity, expire_date)' +
-      ' select "' + Token.Token + '",' +
+      ' SELECT "' + Response.Token + '",' +
       ' ' + QuotedStr(AUserKey) + ',' +
       ' ' + QuotedStr(AParcelIdentity) + ',' +
-      ' ' + QuotedStr(Token.Expires) + ';',
+      ' ' + QuotedStr(Response.Expires) + ';',
       LError
     ) then
     begin
@@ -253,6 +286,56 @@ begin
   except on E : Exception do
     LogError('Authenticate::' + E.Message)
   end;
+end;
+
+function TAuthController.Validate(const AToken: String): Boolean;
+var
+  LData : TDatasetResponse;
+  LError : String;
+begin
+  Result := False;
+
+  //see if we have a record that matches withing the grace window
+  if GetSQLResultsJSON(
+    'SELECT 1 FROM auth WHERE token = ' + QuotedStr(AToken) +
+    ' AND expire_date > DATETIME("now", "+5 seconds")' + //5 second grace time
+    ' ORDER BY id DESC LIMIT 1;',
+    LData,
+    LError
+  ) then
+  begin
+    if LData.Count > 0 then
+      Result := True;
+  end;
+end;
+
+function TAuthController.Lookup(const AToken: String;
+  out Details: TAuthRequest): Boolean;
+var
+  LData: TDatasetResponse;
+  LError: String;
+begin
+  Result := False;
+
+  //no need to perform a query if we don't have a valid token to begin with
+  if not Validate(AToken) then
+    Exit;
+
+  if GetSQLResultsJSON(
+    'SELECT user_key, parcel_identity FROM auth WHERE token = ' + QuotedStr(AToken),
+    LData,
+    LError
+  ) then
+  begin
+    //assign the details
+    if LData.Count > 0 then
+    begin
+      Details.FromJSON(LData[0]);
+      Result := True;
+    end;
+  end
+  else
+    LogError('Lookup::' + LError);
 end;
 
 initialization

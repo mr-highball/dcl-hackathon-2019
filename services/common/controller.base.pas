@@ -56,9 +56,6 @@ type
       var ActionName: String);
     procedure HealthCheck(Sender : TObject; ARequest : TRequest;
       AResponse : TResponse; Var Handled : Boolean);
-  public
-    const
-      PROP_RESULT = 'result';
   strict private
     FRoot : String;
     FName : String;
@@ -107,10 +104,10 @@ type
 
     (*
       will execute and open a query that returns a result set. this will be
-      returned in a json object where PROP_RESULT is a json array to
+      returned in a json object where result is a json array to
       object representations of the rows
     *)
-    function GetSQLResultsJSON(Const ASQL : String; Out Data : String;
+    function GetSQLResultsJSON(Const ASQL : String; Out Data : TDatasetResponse;
       Out Error : String) : Boolean;
 
     (*
@@ -174,7 +171,8 @@ function GetControllerRoute(Const AAction : String) : String;
 implementation
 uses
   fpjson,
-  jsonparser;
+  jsonparser,
+  DB;
 var
   FLog : TEventLog; //log singleton
 
@@ -369,6 +367,8 @@ begin
 
       //commit transaction the disk
       transaction.Commit;
+
+      Result := True;
     finally
       connection.Close;
     end;
@@ -386,23 +386,87 @@ begin
 end;
 
 function TBaseController.GetSQLResultsJSON(const ASQL: String;
-  out Data : String; out Error: String): Boolean;
+  out Data : TDatasetResponse; out Error: String): Boolean;
 var
   LObj : TJSONObject;
+  LQuery : TSQLQuery;
+  I: Integer;
+  LField: TField;
 begin
   Result := False;
-  Data := '{"' + PROP_RESULT + '" : []}'; //empty
 
-  LObj := TJSONObject.Create;
+  LQuery := TSQLQuery.Create(nil);
   try
     try
+      connection.Close;
 
+      //init query
+      LQuery.SQLConnection := connection;
+      LQuery.Transaction := transaction;
+      LQuery.ReadOnly := True;
+      LQuery.UniDirectional := True; //discards records after reading, smaller footprint
+      LQuery.SQL.Text := ASQL;
+
+      //open the connection
+      connection.Open;
+
+      //now we can open the query for reading
+      LQuery.Open;
+
+      //traverse dataset and build up a json object to add to the the row
+      while not LQuery.EOF do
+      begin
+        LObj := TJSONObject.Create;
+        try
+          try
+
+            //iterate fields to build the object
+            for I := 0 to Pred(LQuery.FieldCount) do
+            begin
+              //get a reference to the field
+              LField := LQuery.Fields[I];
+
+              case LField.DataType of
+                //boolean case
+                ftBoolean : LObj.Add(LField.Name, TJSONBoolean.Create(LField.AsBoolean));
+
+                //number types
+                ftInteger,
+                ftFloat,
+                ftCurrency,
+                ftsmallint,
+                ftLargeint,
+                ftWord : LObj.Add(LField.Name, LField.AsFloat);
+
+                //default to string otherwise
+                else
+                  LObj.Add(LField.FieldName, LField.AsString);
+              end;
+            end;
+
+            //add the row
+            Data.AddRow(LObj.AsJSON);
+          finally
+            LObj.Free;
+          end;
+        except on E : Exception do
+        begin
+          Error := E.Message;
+          Exit;
+        end
+        end;
+
+        //next row
+        LQuery.Next;
+      end;
+
+      //success
       Result := True;
     except on E : Exception do
       Error := E.Message;
     end;
   finally
-    LObj.Free;
+    LQuery.Free;
   end;
 end;
 

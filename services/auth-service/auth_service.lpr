@@ -15,6 +15,8 @@ var
   LConfig : IJSONConfig;
   LError: String;
 begin
+  WriteLn('authentication service started...');
+
   //create and load config if one exists
   LConfig := CreateJSONConfig;
 
@@ -35,11 +37,13 @@ begin
   DEFAULT_DB_NAME := LConfig['databaseName'];
 
   //set the expiration time of the token
-  EXPIRATION_TIME := StrToInt(LConfig['tokenExpirationTime']);
+  EXPIRATION_TIME := StrToIntDef(LConfig['tokenExpirationTime'], 5 * 60 * 1000);
 
   //init web app
   Application.Title:='auth_service';
-  Application.Port:=StrToIntDef(LConfig['port'], 8081);;
+  Application.Port:=StrToIntDef(LConfig['port'], 8081);
+  WriteLn('listening on port ', Application.Port);
+  WriteLn('database is ', DEFAULT_DB_NAME);
   Application.Threaded:=True;
   Application.Initialize;
   Application.Run;
