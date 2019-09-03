@@ -78,13 +78,13 @@ var
 begin
   //initialize our table if it doesn't exist
   ExecuteSQL(
-    'CREATE TABLE IF NOT EXISTS "auth"(' +
+    'CREATE TABLE IF NOT EXISTS ''auth''(' +
     ' "id" Integer NOT NULL PRIMARY KEY AUTOINCREMENT,' +
     ' "token" varchar(128) NOT NULL,' +
     ' "user_key" varchar(50) NOT NULL,' +
     ' "parcel_identity" varchar(25) NOT NULL,' +
-    ' "expire_date" datetime NOT NULL DEFAULT (datetime("now")),' +
-    ' "create_date" datetime NOT NULL DEFAULT (datetime("now")));',
+    ' "expire_date" datetime NOT NULL DEFAULT (datetime(''now'')),' +
+    ' "create_date" datetime NOT NULL DEFAULT (datetime(''now'')));',
     LError
   );
 end;

@@ -8,11 +8,10 @@ object BaseController: TBaseController
       Template.AllowTagParams = False
     end>
   ActionVar = 'a'
-  OnGetAction = DataModuleGetAction
   CreateSession = False
   Height = 826
-  HorizontalOffset = 1463
-  VerticalOffset = 471
+  HorizontalOffset = 3212
+  VerticalOffset = 820
   Width = 1168
   PPI = 192
   object connection: TSQLite3Connection
