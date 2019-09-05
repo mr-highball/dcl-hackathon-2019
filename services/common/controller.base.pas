@@ -165,6 +165,7 @@ type
 
 var
   DEFAULT_DB_NAME : String;
+  CONTROLLER_LOG_TYPES : TControllerLogTypes;
 
 function GetControllerRoute(Const AAction : String) : String;
 
@@ -555,7 +556,7 @@ end;
 constructor TBaseController.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  FLogTypes := [clInfo, clWarn, clError];
+  FLogTypes := CONTROLLER_LOG_TYPES;
 
   //we need at least one default action defined in base before calling this
   //ie. the health check will be defined at the design level
@@ -570,6 +571,7 @@ end;
 
 initialization
   DEFAULT_DB_NAME := 'database.sqlite3';
+  CONTROLLER_LOG_TYPES := [clInfo, clWarn, clError];
   FLog := TEventLog.Create(nil);
 finalization
   FLog.Active := False;

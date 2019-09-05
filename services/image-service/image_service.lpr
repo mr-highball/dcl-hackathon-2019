@@ -26,6 +26,8 @@ begin
     LConfig.UpsertValue('port', '8080'); //set default port
     LConfig.UpsertValue('databaseName', 'image_service.sqlite3'); //default db name
     LConfig.UpsertValue('authServiceAddress', '127.0.0.1:8081'); //default db name
+    LConfig.UpsertValue('maxImageWidth', '64');
+    LConfig.UpsertValue('maxImageHeight', '64');
 
     if not LConfig.SaveToFile(CONFIG_NAME, LError) then
       WriteLn(LError);
@@ -39,6 +41,10 @@ begin
 
   //update the auth service address
   AUTH_ADDRESS := LConfig['authServiceAddress'];
+
+  //update the max dimensions
+  MAX_IMAGE_WIDTH := StrToIntDef(LConfig['maxImageWidth'], 64);
+  MAX_IMAGE_HEIGHT := StrToIntDef(LConfig['maxImageHeight'], 64);
 
   //init web app
   Application.Title:='image_service';

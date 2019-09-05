@@ -54,7 +54,7 @@ type
 
   { TLookupRequest }
   (*
-    data transfer object to request details for the lookup endpoint
+    data transfer object to request details for lookup using a token
   *)
   TLookupRequest = record
   public

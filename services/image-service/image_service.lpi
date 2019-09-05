@@ -21,7 +21,7 @@
           <PathDelim Value="\"/>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
-            <OtherUnitFiles Value="src;..\common;..\auth-service\src"/>
+            <OtherUnitFiles Value="src;..\common;..\auth-service\src;..\common\ezthreads\src;..\common\bgrabitmap\bgrabitmap"/>
             <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <Parsing>
@@ -58,7 +58,7 @@
           <PathDelim Value="\"/>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
-            <OtherUnitFiles Value="src;..\common;..\auth-service\src"/>
+            <OtherUnitFiles Value="src;..\common;..\auth-service\src;..\common\ezthreads\src;..\common\bgrabitmap\bgrabitmap"/>
             <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <Parsing>

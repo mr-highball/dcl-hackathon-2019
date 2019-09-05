@@ -1,3 +1,6 @@
 [submodule "services/common/ezthreads"]
 	path = services/common/ezthreads
 	url = https://github.com/mr-highball/ezthreads.git
+[submodule "services/common/bgrabitmap"]
+	path = services/common/bgrabitmap
+	url = https://github.com/bgrabitmap/bgrabitmap.git
