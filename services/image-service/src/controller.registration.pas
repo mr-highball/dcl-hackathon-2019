@@ -123,72 +123,63 @@ function DitherImageStream(Const AImage : TStream; Const AURL : String;
 var
   LTask: TDitheringTask;
   LReader: TFPCustomImageReader;
-  LBitmap : TBGRACustomBitmap;
-  LBuffer : TMemoryStream;
+  LBitmap , LResampled, LDithered: TBGRACustomBitmap;
+  LExt: String;
+  LFormat: TBGRAImageFormat;
 begin
   Result := False;
 
   try
     AImage.Position := 0;
+    LExt := AURL.Substring(AURL.LastIndexOf('.'));
 
-    //initialize a bitmap
-    if (AURL.Contains('.jpg') or AURL.Contains('.jpeg')) then
+    if LExt.IsEmpty then
     begin
-      //jpegs can sometimes be strange... use finer control here
-      LReader := DefaultBGRAImageReader[ifJpeg].Create;
-      LBitmap := TBGRABitmap.Create;
-      LBitmap.LoadFromStream(AImage, LReader, [loBmpAutoOpaque, loJpegQuick]);
-      LReader.Free;
-    end
-    else
-      LBitmap := TBGRABitmap.Create(AImage);
+      Error := 'DitherImageStream::invalid/empty extension';
+      Exit;
+    end;
 
-    LBuffer := TMemoryStream.Create;
+    //initialize reader objects
+    LFormat := SuggestImageFormat(LExt);
+    LReader := DefaultBGRAImageReader[LFormat].Create;
+    LBitmap := TBGRABitmap.Create;
+
     try
+      //try to load
+      LBitmap.LoadFromStream(AImage, LReader, []);
+
       //resize the image to the configured dimensions
-      with LBitmap.Resample(MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT) do
-      begin
-        LBuffer.Clear;
-        LBuffer.Position := 0;
-        SaveToStreamAs(LBuffer, ifPng);
-        Free;
-      end;
+      LResampled := LBitmap.Resample(MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT);
 
       //initialize the dither task
       LTask := CreateDitheringTask(
         daNearestNeighbor, //algorithm for dithering
-        LBitmap, //source image
+        LResampled, //source image
         Palette, //use the reduced color palette
         True, //ignore alpha for now
-        ABitmap.GetImageBounds()
+        LResampled.GetImageBounds()
       );
 
       try
-        //configure to dither to the current bitmap
-        LTask.Destination := ABitmap;
-
         //begin dithering
-        with TBGRABitmap(LTask.Execute) do
-        begin
-          LBuffer.Clear;
-          LBuffer.Position := 0;
-          SaveToStreamAs(LBuffer, ifPng);
-          Free;
-        end;
+        LDithered := LTask.Execute;
 
-        //load the dithered image to result
-        ABitmap.Assign(LBitmap);
+        //update result with the dithered result
+        ABitmap.Assign(LDithered);
+
+        //cleanup
+        LDithered.Free;
 
         //success
         Result := True;
       finally
-        LBitmap.Free;
+        LResampled.Free;
         LTask.Free;
       end;
     finally
-      LBuffer.Free;
+      LBitmap.Free;
+      LReader.Free;
     end;
-
   except on E : Exception do
     Error := E.Message;
   end;
@@ -196,11 +187,82 @@ end;
 
 function ConstructDCLImageJSON(Const AImage : TBGRABitmap;
   Out JSON, Error : String) : Boolean;
+type
+  TColorRect = record
+    Rect : TRect;
+    Red : Byte;
+    Green : Byte;
+    Blue : Byte;
+  end;
+
+  TColorRectArray = TArray<TColorRect>;
+
+var
+  L, H, LCurLine, LCurRow, LStartLine, LStartRow: Integer;
+
+  (*
+    uses a scanned line and searches for the color at starting pos, returning
+    once the line has been fully scanned, or the color changes
+  *)
+  function GetLastContinuousColorIdx(Const AStartIndex : Integer;
+    Const ALine : PBGRAPixel; Const AWidth : Integer) : Integer;
+  var
+    I: Integer;
+    R, G, B : Byte;
+    LPix: PBGRAPixel;
+  begin
+    Result := 0;
+
+    if (AStartIndex < 0) or (AStartIndex > AWidth) then
+      raise Exception.Create('GetLastContinuousColorIdx::invalid dimensions');
+
+    //get the color we're searching for
+    with PBGRAPixel(Pointer(ALine) + SizeOf(TBGRAPixel) * AStartIndex)^ do
+    begin
+      R := red;
+      G := green;
+      B := blue;
+    end;
+
+    //special case for single pixel line
+    if AWidth = 1 then
+      Exit(1);
+
+    //scan contents of line until we break the current color
+    for I := 1 to Pred(AWidth) do
+    begin
+      LPix := PBGRAPixel(Pointer(ALine) + SizeOf(TBGRAPixel) * I);
+
+      if (R <> LPix.red) or (G <> LPix.green) or (B <> LPix.blue) then
+        Exit;
+
+      //update marker index since we found an equivalent pixel
+      Result := I;
+    end;
+  end;
+
 begin
   Result := False;
 
   try
-    //todo
+    L := AImage.Width;
+    H := AImage.Height;
+
+    if (L = 0) or (H = 0) then
+      raise Exception.Create('ConstructDCLImageJSON::invalid dimensions');
+
+    //initialize positional markers
+    LStartLine := 0; //starting y for building a rect
+    LStartRow := 0; //starting x for building a rect
+    LCurLine := 0; //current y in rect building
+    LCurRow := 0; //current x in rect building
+
+    //process all of the lines and rows of the input image in order
+    //to construct the rectangles to draw
+    while true do
+    begin
+      AImage.GetScanlineAt(LCurLine, LCurRow);
+    end;
   except on E : Exception do
     Error := E.Message;
   end;
@@ -427,15 +489,18 @@ var
         //dcl client can draw it in some reasonable amount of time
         //(currently uses color components to draw, this may change later...)
         if not DitherImageStream(LData, AThread['url'], LBitmap, LError) then
-          raise Exception.Create(LError);
-
-        //debug... remove me
-        LBitmap.SaveToFile('debugRemoveMeLater.bmp');
+        begin
+          AThread.AddArg('error', LError);
+          Exit;
+        end;
 
         //after dithering has been completed, we can construct to a
         //dcl readable format
         if not ConstructDCLImageJSON(LBitmap, LJSON, LError) then
-          raise Exception.Create(LError);
+        begin
+          AThread.AddArg('error', LError);
+          Exit;
+        end;
       finally
         LBitmap.Free;
         LData.Free;
@@ -443,10 +508,7 @@ var
         LStatus.Free;
       end;
     except on E : Exception do
-    begin
       AThread.AddArg('error', E.Message);
-      raise E; //re-raise to trigger failure method
-    end;
     end;
   end;
 
@@ -456,33 +518,16 @@ var
   begin
     LStatus := TStatusController.Create(nil);
 
-    //mark the status as complete
-    //...
-
-    //remove from collection
-    Collection.Remove(AThread);
-  end;
-
-  procedure Failure(Const AThread : IEZThread);
-  var
-    LStatus: TStatusController;
-    LRegister : TRegistrationController;
-  begin
-    LStatus := TStatusController.Create(nil);
-    LRegister := TRegistrationController.Create(nil);
-
-    //mark the status as failed
-    //...
-
-    //log the error with the controller since we wont have scope
-    //to this thread's calling controller
-    LRegister.LogError(
-      IfThen<String>(
-        AThread.Exists['error'],
-        'StartProcessing::' + AThread['error'],
-        'StartProcessing::no error message for thread'
-      )
-    );
+    if not AThread.Exists['error'] then
+    begin
+       //mark the status as complete
+      //...
+    end
+    else
+    begin
+      //mark the status as failure
+      //...
+    end;
 
     //remove from collection
     Collection.Remove(AThread);
@@ -494,8 +539,8 @@ begin
   LThread
     .Setup(
       Start, //handles initialize of status and processing
-      Finish, //updates the status to finished and produces saves the result
-      Failure //updates the status to failed
+      nil,
+      Finish //updates the status to finished and produces saves the result
     )
     .AddArg('url', ARequest.Validation.URL)
     .AddArg('token', AResponse.Token)
