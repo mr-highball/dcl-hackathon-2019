@@ -198,42 +198,33 @@ type
   TColorRectArray = TArray<TColorRect>;
 
 var
-  L, H, LCurLine, LCurRow, LStartLine, LStartRow: Integer;
+  W, H, LCurRow, LCurCol, LStartRow, LStartCol, LWorkingRow,
+  LWorkingCol: Integer;
+  LRect : TColorRect;
+  LRects : TColorRectArray;
 
   (*
     uses a scanned line and searches for the color at starting pos, returning
     once the line has been fully scanned, or the color changes
   *)
-  function GetLastContinuousColorIdx(Const AStartIndex : Integer;
+  function GetLastContinuousColorIdx(Constref APixel : TBGRAPixel;
+    Const AStartIndex : Integer;
     Const ALine : PBGRAPixel; Const AWidth : Integer) : Integer;
   var
     I: Integer;
-    R, G, B : Byte;
     LPix: PBGRAPixel;
   begin
-    Result := 0;
+    Result := -1;
 
     if (AStartIndex < 0) or (AStartIndex > AWidth) then
       raise Exception.Create('GetLastContinuousColorIdx::invalid dimensions');
 
-    //get the color we're searching for
-    with PBGRAPixel(Pointer(ALine) + SizeOf(TBGRAPixel) * AStartIndex)^ do
-    begin
-      R := red;
-      G := green;
-      B := blue;
-    end;
-
-    //special case for single pixel line
-    if AWidth = 1 then
-      Exit(1);
-
     //scan contents of line until we break the current color
-    for I := 1 to Pred(AWidth) do
+    for I := 0 to Pred(AWidth) do
     begin
       LPix := PBGRAPixel(Pointer(ALine) + SizeOf(TBGRAPixel) * I);
 
-      if (R <> LPix.red) or (G <> LPix.green) or (B <> LPix.blue) then
+      if (APixel.red <> LPix.red) or (APixel.green <> LPix.green) or (APixel.blue <> LPix.blue) then
         Exit;
 
       //update marker index since we found an equivalent pixel
@@ -242,26 +233,96 @@ var
   end;
 
 begin
+  (*
+    essentially the below algorithm will attempt to "vectorize" an input
+    raster image into a series of draw rect commands (color/rect). this
+    won't be perfect, and isn't a trivial problem to solve, but due to the fact that
+    dcl doesn't have native canvas commands or support to load a damn web image,
+    it's the best stab I have at the problem right now...
+    the upside to this, is that it should be renderable to any client that can
+    draw to a canvas and who needs to dithered scaleable image
+    (which may be useful for other things...)
+  *)
   Result := False;
+  SetLength(LRects, 0);
 
   try
-    L := AImage.Width;
+    W := AImage.Width;
     H := AImage.Height;
 
-    if (L = 0) or (H = 0) then
+    if (W <= 0) or (H <= 0) then
       raise Exception.Create('ConstructDCLImageJSON::invalid dimensions');
 
     //initialize positional markers
-    LStartLine := 0; //starting y for building a rect
-    LStartRow := 0; //starting x for building a rect
-    LCurLine := 0; //current y in rect building
-    LCurRow := 0; //current x in rect building
+    LStartRow := 0; //starting y for building a rect
+    LStartCol := 0; //starting x for building a rect
+    LWorkingRow := 0; //temp y value
+    LWorkingCol := 0; //temp x value
+    LCurRow := 0; //current y in rect
+    LCurCol := 0; //current x in rect
 
     //process all of the lines and rows of the input image in order
     //to construct the rectangles to draw
-    while true do
+    while True do
     begin
-      AImage.GetScanlineAt(LCurLine, LCurRow);
+      LStartRow := LCurRow;
+      LStartCol := LCurCol;
+      LWorkingRow := LCurRow;
+      LWorkingCol := LCurCol;
+
+      //get the width of the working color segment
+      LCurCol := GetLastContinuousColorIdx(
+        AImage.GetPixel(LStartCol, LStartRow),
+        LStartCol,
+        AImage.GetScanlineAt(LCurRow, LCurCol),
+        W
+      );
+
+      //find the optimal bottom corner
+      while True do
+      begin
+        //next row
+        Inc(LWorkingRow);
+
+        //exceeded row count
+        if LWorkingRow > H then
+        begin
+          //close current rect off
+          //...
+
+          //exit inner loop
+          break;
+        end;
+
+        //use working column to figure out the maximum column we can use
+        //to build a rect with (bottom corner)
+        LWorkingCol := GetLastContinuousColorIdx(
+          AImage.GetPixel(LStartCol, LWorkingRow),
+          LStartCol,
+          AImage.GetScanlineAt(LWorkingRow, LCurCol),
+          W
+        );
+
+        //if the next line is less than current, check to see if we can close this
+        //rect off, and add it to our list
+        if LWorkingCol < LCurCol then
+        begin
+          //we found a pixel matching our color, but it was at a lower column
+          //value then the current, so we need update current column to working (lower),
+          //and the current row to working (higher value)
+          if LWorkingCol >= 0 then
+          begin
+            LCurCol := LWorkingCol;
+            LCurRow := LWorkingRow;
+          end;
+
+          //we don't want to exit if there are more rows to process
+          //todo - figure this out...
+
+          //exit inner loop
+          break;
+        end;
+      end;
     end;
   except on E : Exception do
     Error := E.Message;
