@@ -92,7 +92,8 @@ uses
   controller.dto,
   ezthreads,
   ezthreads.collection,
-  opensslsockets;
+  opensslsockets,
+  fgl;
 var
   Collection : IEZCollection;
   Palette : TBGRAApproxPalette;
@@ -196,6 +197,9 @@ type
   end;
 
   TColorRectArray = TArray<TColorRect>;
+
+  //key is int value of color
+  TColorMap = TFPGMap<Integer, TColorRectArray>;
 
 var
   W, H, LCurRow, LCurCol, LStartRow, LStartCol, LWorkingRow,
@@ -312,15 +316,17 @@ begin
           //and the current row to working (higher value)
           if LWorkingCol >= 0 then
           begin
-            LCurCol := LWorkingCol;
-            LCurRow := LWorkingRow;
+            //make the rect with the largest area, so if the current
+            //rect would be larger without including this line, break the loop
+            if (LCurCol * LWorkingRow) > (LWorkingCol * LWorkingRow) then
+              break
+            else
+            begin
+              //update the current column to be the lesser of the two values
+              LCurCol := LWorkingCol;
+              continue;
+            end;
           end;
-
-          //we don't want to exit if there are more rows to process
-          //todo - figure this out...
-
-          //exit inner loop
-          break;
         end;
       end;
     end;
@@ -595,13 +601,13 @@ var
   end;
 
 begin
-  //setup and start a processing thread
+  //setup a processing thread
   LThread := TEZThreadImpl.Create;
   LThread
     .Setup(
       Start, //handles initialize of status and processing
       nil,
-      Finish //updates the status to finished and produces saves the result
+      Finish //updates the status to finished/failed and saves the result
     )
     .AddArg('url', ARequest.Validation.URL)
     .AddArg('token', AResponse.Token)
