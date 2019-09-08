@@ -20,7 +20,7 @@ var
   LBits : TBGRABitmap;
   LJSON, LError: String;
 begin
-  LBits := TBGRABitmap.Create('debugRemoveMeLater_xs.bmp');
+  LBits := TBGRABitmap.Create('debugRemoveMeLater.bmp');
   ConstructDCLImageJSON(LBits, LJSON, LError);
   LBits.Free;
 end;

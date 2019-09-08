@@ -169,6 +169,7 @@ begin
         True, //ignore alpha for now
         LResampled.GetImageBounds()
       );
+      LTask.DrawMode := dmSet;
 
       try
         //begin dithering
@@ -492,7 +493,7 @@ begin
         IntToStr(LRect.Rect.TopLeft.Y) + ',' +
         IntToStr(Succ(LRect.Rect.TopRight.X) - LRect.Rect.TopLeft.X) + ',' + //width
         IntToStr(Succ(LRect.Rect.BottomRight.Y) - LRect.Rect.TopRight.Y) + ',' + //height
-        'Color4.FromHexString(' + QuotedStr(Integer(TBGRAPixel.New(LRect.Red, LRect.Green, LRect.Blue).ToColor).ToHexString) + ')' + ')'
+        'Color4.FromInts(' + IntToStr(LRect.Red) + ',' + IntToStr(LRect.Green) + ',' + IntToStr(LRect.Blue) + ',255))'
       );
     end;
     LList.SaveToFile('drawInTs.txt');
