@@ -10,7 +10,10 @@ uses
   Classes,
   httpdefs,
   fpHTTP,
-  fpWeb, FPImage,
+  fpWeb,
+  FPImage,
+  BGRABitmap,
+  BGRABitmapTypes,
   controller.base,
   controller.registration.dto;
 
@@ -76,14 +79,20 @@ type
     function CancelRequest() : Boolean;
   end;
 
+
+function DitherImageStream(Const AImage : TStream; Const AURL : String;
+  Const ABitmap : TBGRABitmap; Out Error : String) : Boolean;
+
+function ConstructDCLImageJSON(Const AImage : TBGRABitmap;
+  Out JSON, Error : String) : Boolean;
+
 var
   RegistrationController: TRegistrationController;
 
 implementation
 uses
+  Interfaces,
   Graphics,
-  BGRABitmap,
-  BGRABitmapTypes,
   bgradithering,
   BGRAPalette,
   BGRAColorQuantization,
@@ -189,8 +198,15 @@ end;
 function ConstructDCLImageJSON(Const AImage : TBGRABitmap;
   Out JSON, Error : String) : Boolean;
 type
-  TColorRect = record
-    Rect : TRect;
+  TRectangle = packed record
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight: TPoint;
+  end;
+
+  TColorRect = packed record
+    Rect : TRectangle;
     Red : Byte;
     Green : Byte;
     Blue : Byte;
@@ -198,44 +214,22 @@ type
 
   TColorRectArray = TArray<TColorRect>;
 
+  TLookupArray = packed array of array of Boolean;
+
   //key is int value of color
   TColorMap = TFPGMap<Integer, TColorRectArray>;
 
 var
-  W, H, LCurRow, LCurCol, LStartRow, LStartCol, LWorkingRow,
-  LWorkingCol: Integer;
+  W, H, BR, LCurrentRow, TL, TR,
+  BL, J, K, I, Top, Bottom: Integer;
+  LPoints : TRectangle;
   LRect : TColorRect;
   LRects : TColorRectArray;
-
-  (*
-    uses a scanned line and searches for the color at starting pos, returning
-    once the line has been fully scanned, or the color changes
-  *)
-  function GetLastContinuousColorIdx(Constref APixel : TBGRAPixel;
-    Const AStartIndex : Integer;
-    Const ALine : PBGRAPixel; Const AWidth : Integer) : Integer;
-  var
-    I: Integer;
-    LPix: PBGRAPixel;
-  begin
-    Result := -1;
-
-    if (AStartIndex < 0) or (AStartIndex > AWidth) then
-      raise Exception.Create('GetLastContinuousColorIdx::invalid dimensions');
-
-    //scan contents of line until we break the current color
-    for I := 0 to Pred(AWidth) do
-    begin
-      LPix := PBGRAPixel(Pointer(ALine) + SizeOf(TBGRAPixel) * I);
-
-      if (APixel.red <> LPix.red) or (APixel.green <> LPix.green) or (APixel.blue <> LPix.blue) then
-        Exit;
-
-      //update marker index since we found an equivalent pixel
-      Result := I;
-    end;
-  end;
-
+  LLookup : TLookupArray;
+  LColor: TBGRAPixel;
+  LCurPixel: TBGRAPixel;
+  LAreaCalc, LFound, LCloseRect: Boolean;
+  LList: TStringList;
 begin
   (*
     essentially the below algorithm will attempt to "vectorize" an input
@@ -257,79 +251,254 @@ begin
     if (W <= 0) or (H <= 0) then
       raise Exception.Create('ConstructDCLImageJSON::invalid dimensions');
 
-    //initialize positional markers
-    LStartRow := 0; //starting y for building a rect
-    LStartCol := 0; //starting x for building a rect
-    LWorkingRow := 0; //temp y value
-    LWorkingCol := 0; //temp x value
-    LCurRow := 0; //current y in rect
-    LCurCol := 0; //current x in rect
+    //for every color in the palette, we need to construct rects to draw
+    SetLength(LLookup, W, H); //define to the size of our image
 
-    //process all of the lines and rows of the input image in order
-    //to construct the rectangles to draw
-    while True do
+    for I := 0 to Pred(Palette.Count) do
     begin
-      LStartRow := LCurRow;
-      LStartCol := LCurCol;
-      LWorkingRow := LCurRow;
-      LWorkingCol := LCurCol;
+      //get the color we're searching for from the palette
+      LColor := Palette.Color[I];
+      LFound := False;
 
-      //get the width of the working color segment
-      LCurCol := GetLastContinuousColorIdx(
-        AImage.GetPixel(LStartCol, LStartRow),
-        LStartCol,
-        AImage.GetScanlineAt(LCurRow, LCurCol),
-        W
-      );
+      //iterate the pixels of the image to populate the lookup array
+      for J := 0 to Pred(W) do
+        for K := 0 to Pred(H) do
+        begin
+          LCurPixel := AImage.GetPixel(J, K);
 
-      //find the optimal bottom corner
+          if (LCurPixel.red = LColor.red) and (LCurPixel.green = LColor.green)
+            and (LCurPixel.blue = LColor.blue)
+          then
+          begin
+            LLookup[J][K] := True;
+            LFound := True;
+          end
+          else
+            LLookup[J][K] := False;
+        end;
+
+      //didn't find this color, move to the next
+      if not LFound then
+        Continue;
+
+      //current working column in the array
+      LCurrentRow := 0;
+
+      //continue as long as we have un-filled areas
       while True do
       begin
-        //next row
-        Inc(LWorkingRow);
+        //covered this entire color
+        if LCurrentRow >= H then
+          Break;
 
-        //exceeded row count
-        if LWorkingRow > H then
+        //initialize positional markers for the rect
+        Top := LCurrentRow; //row marker for top corners
+        TL := -1; //top-left corner
+        TR := -1; //top-right corner
+        BL := -1; //bottom-left corner
+        BR := -1; //bottom-right corner
+        Bottom := LCurrentRow; //row marker for bottom corners
+        LCloseRect := False;
+
+        while True do
         begin
-          //close current rect off
-          //...
-
-          //exit inner loop
-          break;
-        end;
-
-        //use working column to figure out the maximum column we can use
-        //to build a rect with (bottom corner)
-        LWorkingCol := GetLastContinuousColorIdx(
-          AImage.GetPixel(LStartCol, LWorkingRow),
-          LStartCol,
-          AImage.GetScanlineAt(LWorkingRow, LCurCol),
-          W
-        );
-
-        //if the next line is less than current, check to see if we can close this
-        //rect off, and add it to our list
-        if LWorkingCol < LCurCol then
-        begin
-          //we found a pixel matching our color, but it was at a lower column
-          //value then the current, so we need update current column to working (lower),
-          //and the current row to working (higher value)
-          if LWorkingCol >= 0 then
+          //first we find the top corners
+          if TL < 0 then
           begin
-            //make the rect with the largest area, so if the current
-            //rect would be larger without including this line, break the loop
-            if (LCurCol * LWorkingRow) > (LWorkingCol * LWorkingRow) then
-              break
+            for J := 0 to Pred(W) do
+            begin
+              if (TL < 0) and LLookup[J][Top] then
+                TL := J
+              //break in color
+              else if not LLookup[J][Top] then
+              begin
+                //continue scanning for a top left if we still have pixels
+                if (TL < 0) and (J < Pred(W)) then
+                  Continue
+                else
+                begin
+                  //if right corner hasn't been set yet, then it equals the top-left
+                  if TR < 0 then
+                    TR := TL;
+
+                  //this row is no longer valid
+                  Break;
+                end;
+              end
+              else
+                TR := J;
+            end;
+
+            if TR <= TL then
+              TR := TL;
+          end
+          //otherwise we have the top, need to find the bottom
+          else
+          begin
+            //move the bottom further than top
+            Bottom := Succ(Bottom);
+
+            //exceeded bounds
+            if Bottom >= H then
+            begin
+              if BL < 0 then
+                BL := TL;
+
+              if BR < 0 then
+                BR := TR;
+
+              Bottom := Pred(Bottom);
+              LCloseRect := True;
+            end
             else
             begin
-              //update the current column to be the lesser of the two values
-              LCurCol := LWorkingCol;
-              continue;
+              //flag for area calculation
+              LAreaCalc := False;
+
+              for J := TL to TR do
+              begin
+                (*
+                  since we already know the top left, make sure we can
+                  anchor the bottom left at the current row aligned to top
+                  otherwise we will need to perform area calculations to find
+                  if adjusting the top will be beneficial (largest rect possible)
+                *)
+                if (BL < 0) and LLookup[TL][Bottom] then
+                  BL := J
+                //found color, but bottom-left is different than top-left
+                else if (BL < 0) and LLookup[J][Bottom] then
+                begin
+                  BL := J;
+                  LAreaCalc := True;
+                end
+                //break in color
+                else if not LLookup[J][Bottom] then
+                begin
+                  //continue scanning for a bottom left if we still have pixels
+                  if (BL < 0) and (J < Pred(TR)) then
+                    Continue
+                  //invalid row
+                  else if BL < 0 then
+                  begin
+                    Dec(Bottom);
+                    LCloseRect := True;
+                    Break;
+                  end
+                  //valid row, but possible area recalc
+                  else
+                  begin
+                    //if right corner hasn't been set yet, then it equals the bottom-left
+                    if BR < 0 then
+                      BR := BL;
+
+                    //we've broken earlier than the previous rows
+                    if BR < TR then
+                      LAreaCalc := True
+                    //finished this rect
+                    else
+                    begin
+                      //discard this bottom
+                      Dec(Bottom);
+                      LCloseRect := True;
+                      Break;
+                    end;
+                  end;
+                end
+                else
+                  BR := J;
+
+                if LAreaCalc then
+                begin
+                  //check if the previous area is greater than the new
+                  if (Succ(TR) - TL) * (Bottom - Top) //previous
+                    >
+                    (Succ(BR) - BL) * (Succ(Bottom) - Top) //new
+                  then
+                  begin
+                    Dec(Bottom);
+                    BL := TL;
+                    BR := TR;
+                    LCloseRect := True;
+                    Break;
+                  end
+                  //reduced corners but having new row was greater area
+                  else
+                  begin
+                    //shrink top to fit bottom
+                    TL := BL;
+                    TR := BR;
+                  end;
+                end;
+              end;
             end;
+
           end;
+
+          //found a rect or failed to find one
+          if LCloseRect or (TL < 0) then
+            Break;
         end;
+
+        //when building the rect, we exhausted this rows pixels
+        if TL < 0 then
+        begin
+          Inc(LCurrentRow);
+          Continue;
+        end
+        //add the rect
+        else
+        begin
+          //update the color
+          LRect.Red := LColor.red;
+          LRect.Green := LColor.green;
+          LRect.Blue := LColor.blue;
+
+          //update the rectangle portion
+          with LPoints do
+          begin
+            TopLeft.X := TL; TopLeft.Y := Top;
+            TopRight.X := TR; TopRight.Y := Top;
+            BottomLeft.X := BL; BottomLeft.Y := Bottom;
+            BottomRight.X := BR; BottomRight.Y := Bottom;
+          end;
+          LRect.Rect := LPoints;
+
+          //increase size and add to result
+          SetLength(LRects, Succ(Length(LRects)));
+          LRects[High(LRects)] := LRect;
+
+          //clear the lookup for this rect
+          for J := TL to TR do
+            for K := Top to Bottom do
+              LLookup[J][K] := False;
+        end;
+
+        //right corner went to bounds
+        if TR >= Pred(W) then
+          Inc(LCurrentRow);
       end;
     end;
+
+    //*************
+    //testing code
+    //*************
+    LList := TStringList.Create;
+    for J := 0 to High(LRects) do
+    begin
+      LRect := LRects[J];
+      LList.Add(
+        'DrawRect(container, ' +
+        IntToStr(LRect.Rect.TopLeft.X) + ',' +//origin
+        IntToStr(LRect.Rect.TopLeft.Y) + ',' +
+        IntToStr(Succ(LRect.Rect.TopRight.X) - LRect.Rect.TopLeft.X) + ',' + //width
+        IntToStr(Succ(LRect.Rect.BottomRight.Y) - LRect.Rect.TopRight.Y) + ',' + //height
+        'Color4.FromHexString(' + QuotedStr(Integer(TBGRAPixel.New(LRect.Red, LRect.Green, LRect.Blue).ToColor).ToHexString) + ')' + ')'
+      );
+    end;
+    LList.SaveToFile('drawInTs.txt');
+    //*************
+    //success
+    Result := True;
   except on E : Exception do
     Error := E.Message;
   end;
