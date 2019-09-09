@@ -10,20 +10,7 @@ uses
   controller.registration,
   controller.status,
   controller.image,
-  controller.settings,
-  BGRABitmap,
-  BGRABitmapTypes;
-
-
-procedure test;
-var
-  LBits : TBGRABitmap;
-  LJSON, LError: String;
-begin
-  LBits := TBGRABitmap.Create('debugRemoveMeLater.bmp');
-  ConstructDCLImageJSON(LBits, LJSON, LError);
-  LBits.Free;
-end;
+  controller.settings;
 
 const
   CONFIG_NAME = 'image_service_config.json';
@@ -31,7 +18,6 @@ var
   LConfig : IJSONConfig;
   LError: String;
 begin
-  test;
   //create and load config if one exists
   LConfig := CreateJSONConfig;
 
