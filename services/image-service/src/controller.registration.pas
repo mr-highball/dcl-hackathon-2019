@@ -77,6 +77,9 @@ type
 
     //will cancel the request as long as the process is in-progress
     function CancelRequest() : Boolean;
+
+    //provided an external image id, will return the internal primary key
+    function LookupImageID(Const AImageToken : String; Out ID : Integer) : Boolean;
   end;
 
 
@@ -102,7 +105,9 @@ uses
   ezthreads,
   ezthreads.collection,
   opensslsockets,
-  fgl;
+  fgl,
+  fpjson,
+  jsonparser;
 var
   Collection : IEZCollection;
   Palette : TBGRAApproxPalette;
@@ -631,8 +636,8 @@ begin
   Result[I + 2] := LAction;
 end;
 
-function TRegistrationController.ValidateURL(
-  constref AValidation: TValidateURLRequest): Boolean;
+function TRegistrationController.ValidateURL(Constref
+  AValidation: TValidateURLRequest): Boolean;
 var
   I: Integer;
 begin
@@ -643,8 +648,8 @@ begin
       Exit(False);
 end;
 
-function TRegistrationController.RegisterImage(constref ARequest : TRegisterURLRequest;
-  out Response : TRegisterURLResponse): Boolean;
+function TRegistrationController.RegisterImage(Constref
+  ARequest: TRegisterURLRequest; out Response: TRegisterURLResponse): Boolean;
 var
   LGuid,
   LError: String;
@@ -696,8 +701,57 @@ begin
   Result := False;
 end;
 
-class procedure TRegistrationController.StartProcessing(
-  constref ARequest: TRegisterURLRequest; constref AResponse: TRegisterURLResponse);
+function TRegistrationController.LookupImageID(const AImageToken: String; out
+  ID: Integer): Boolean;
+var
+  LData: TDatasetResponse;
+  LError: String;
+  LRow: TJSONData;
+begin
+  Result := False;
+
+  try
+    //try to fetch the id
+    if not GetSQLResultsJSON(
+      'SELECT id FROM registration WHERE token = ' + QuotedStr(AImageToken) + ' LIMIT 1;',
+      LData,
+      LError
+    ) then
+    begin
+      LogError('LookupImageID::' + LError);
+      Exit;
+    end;
+
+    //if the caller provided an invalid token, warn and bail
+    if LData.Count < 1 then
+    begin
+      LogWarn('LookupImageID::[' + AImageToken + '] is not a valid token');
+      Exit;
+    end;
+
+    LRow := GetJSON(LData[0]);
+    try
+      if not Assigned(LRow) or (LRow.JSONType <> jtObject) then
+      begin
+        LogError('LookupImageID::malformed json for token [' + AImageToken + ']');
+        Exit;
+      end;
+
+      //assign the id
+      ID := TJSONObject(LRow).Get('id');
+    finally
+      LRow.Free;
+    end;
+
+    //success
+    Result := True;
+  except on E : Exception do
+    LogError('LookupImageID::' + E.Message);
+  end;
+end;
+
+class procedure TRegistrationController.StartProcessing(Constref
+  ARequest: TRegisterURLRequest; Constref AResponse: TRegisterURLResponse);
 var
   LThread : IEZThread;
 
