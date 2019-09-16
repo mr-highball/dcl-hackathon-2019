@@ -27,13 +27,16 @@ type
   strict private
     FStatus: TImageStatus;
   public
-    property Status : String read FStatus write FStatus;
+    property Status : TImageStatus read FStatus write FStatus;
 
     function ToJSON : String;
     procedure FromJSON(Const AJSON : String);
   end;
 
 implementation
+uses
+  fpjson,
+  jsonparser;
 
 { TStatusResponse }
 
