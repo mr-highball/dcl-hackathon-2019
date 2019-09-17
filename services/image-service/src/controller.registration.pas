@@ -806,22 +806,24 @@ var
   procedure Finish(Const AThread : IEZThread);
   var
     LStatus : TStatusController;
+    LError: String;
   begin
     LStatus := TStatusController.Create(nil);
-
-    if not AThread.Exists['error'] then
-    begin
-       //mark the status as complete
-      //...
-    end
-    else
-    begin
+    try
+      if not AThread.Exists['error'] then
+      begin
+         //mark the status as complete
+         if not LStatus.UpdateStatus(AThread['token'], isCompleted, LError) then
+           if not LStatus.UpdateStatus(AThread['token'], isFailed, LError) then
+             Exit;
+      end
       //mark the status as failure
-      //...
+      else
+        LStatus.UpdateStatus(AThread['token'], isFailed, LError);
+    finally
+      //remove from collection
+      Collection.Remove(AThread);
     end;
-
-    //remove from collection
-    Collection.Remove(AThread);
   end;
 
 begin
