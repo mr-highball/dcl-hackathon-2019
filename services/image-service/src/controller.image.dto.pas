@@ -69,7 +69,7 @@ type
     property Count : Integer read GetCount;
     property ByIndex[Const AIndex : Integer] : TDrawCommand read GetCommand; default;
 
-    function Add(Const ACommand : TDrawCommand);
+    function Add(constref ACommand : TDrawCommand) : Integer;
     function ToJSON : String;
     procedure FromJSON(Const AJSON : String);
   end;
@@ -145,7 +145,7 @@ end;
 
 function TImageResponse.GetCommand(const AIndex : Integer): TDrawCommand;
 begin
-  Result := FCommands[I];
+  Result := FCommands[AIndex];
 end;
 
 function TImageResponse.GetCount: Integer;
@@ -153,10 +153,11 @@ begin
   Result := Length(FCommands);
 end;
 
-function TImageResponse.Add(const ACommand: TDrawCommand);
+function TImageResponse.Add(constref ACommand: TDrawCommand) : Integer;
 begin
-  SetLength(FCommands, Succ(Length(FCommands));
+  SetLength(FCommands, Succ(Length(FCommands)));
   FCommands[High(FCommands)] := ACommand;
+  Result := High(FCommands);
 end;
 
 function TImageResponse.ToJSON: String;
