@@ -411,6 +411,9 @@ begin
       //open the connection
       connection.Open;
 
+      //prepare the sql
+      LQuery.Prepare;
+
       //now we can open the query for reading
       LQuery.Open;
 
@@ -429,7 +432,7 @@ begin
 
               case LField.DataType of
                 //boolean case
-                ftBoolean : LObj.Add(LField.Name, TJSONBoolean.Create(LField.AsBoolean));
+                ftBoolean : LObj.Add(LField.DisplayLabel, TJSONBoolean.Create(LField.AsBoolean));
 
                 //number types
                 ftInteger,
@@ -437,11 +440,11 @@ begin
                 ftCurrency,
                 ftsmallint,
                 ftLargeint,
-                ftWord : LObj.Add(LField.Name, LField.AsFloat);
+                ftWord : LObj.Add(LField.DisplayLabel, LField.AsFloat);
 
                 //default to string otherwise
                 else
-                  LObj.Add(LField.FieldName, LField.AsString);
+                  LObj.Add(LField.DisplayLabel, LField.AsString);
               end;
             end;
 

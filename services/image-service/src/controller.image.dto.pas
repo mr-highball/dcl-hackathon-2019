@@ -15,10 +15,14 @@ type
   TDrawCommand = record
   public
     const
-      PROP_TOP_LEFT = 'topLeft';
-      PROP_TOP_RIGHT = 'topRight';
-      PROP_BOTTOM_LEFT = 'bottomLeft';
-      PROP_BOTTOM_RIGHT = 'bottomRight';
+      PROP_TOP_LEFT_X = 'topLeftX';
+      PROP_TOP_RIGHT_X = 'topRightX';
+      PROP_BOTTOM_LEFT_X = 'bottomLeftX';
+      PROP_BOTTOM_RIGHT_X = 'bottomRightX';
+      PROP_TOP_LEFT_Y = 'topLeftY';
+      PROP_TOP_RIGHT_Y = 'topRightY';
+      PROP_BOTTOM_LEFT_Y = 'bottomLeftY';
+      PROP_BOTTOM_RIGHT_Y = 'bottomRightY';
       PROP_RED = 'red';
       PROP_GREEN = 'green';
       PROP_BLUE = 'blue';
@@ -27,18 +31,27 @@ type
     FAlpha: Byte;
     FBL: Integer;
     FBlue: Byte;
+    FBLY: Integer;
     FBR: Integer;
+    FBRY: Integer;
     FGreen: Byte;
     FRed: Byte;
     FTL: Integer;
+    FTLY: Integer;
     FTR: Integer;
+    FTRY: Integer;
   public
     { positional }
 
-    property TopLeft : Integer read FTL write FTL;
-    property TopRight : Integer read FTR write FTR;
-    property BottomLeft : Integer read FBL write FBL;
-    property BottomRight : Integer read FBR write FBR;
+    property TopLeftX : Integer read FTL write FTL;
+    property TopRightX : Integer read FTR write FTR;
+    property BottomLeftX : Integer read FBL write FBL;
+    property BottomRightX : Integer read FBR write FBR;
+
+    property TopLeftY : Integer read FTLY write FTLY;
+    property TopRightY : Integer read FTRY write FTRY;
+    property BottomLeftY : Integer read FBLY write FBLY;
+    property BottomRightY : Integer read FBRY write FBRY;
 
     { color }
 
@@ -88,10 +101,15 @@ begin
   LObj := TJSONObject.Create;
   try
     try
-      LObj.Add(PROP_TOP_LEFT, FTL);
-      LObj.Add(PROP_TOP_RIGHT, FTR);
-      LObj.Add(PROP_BOTTOM_LEFT, FBL);
-      LObj.Add(PROP_BOTTOM_RIGHT, FBR);
+      LObj.Add(PROP_TOP_LEFT_X, FTL);
+      LObj.Add(PROP_TOP_RIGHT_X, FTR);
+      LObj.Add(PROP_BOTTOM_LEFT_X, FBL);
+      LObj.Add(PROP_BOTTOM_RIGHT_X, FBR);
+
+      LObj.Add(PROP_TOP_LEFT_Y, FTLY);
+      LObj.Add(PROP_TOP_RIGHT_Y, FTRY);
+      LObj.Add(PROP_BOTTOM_LEFT_Y, FBLY);
+      LObj.Add(PROP_BOTTOM_RIGHT_Y, FBRY);
 
       LObj.Add(PROP_RED, FRed);
       LObj.Add(PROP_GREEN, FGreen);
@@ -124,10 +142,10 @@ begin
 
   try
     try
-      FTL := TJSONObject(LObj).Get(PROP_TOP_LEFT);
-      FTR := TJSONObject(LObj).Get(PROP_TOP_RIGHT);
-      FBL := TJSONObject(LObj).Get(PROP_BOTTOM_LEFT);
-      FBR := TJSONObject(LObj).Get(PROP_BOTTOM_RIGHT);
+      FTL := TJSONObject(LObj).Get(PROP_TOP_LEFT_X);
+      FTR := TJSONObject(LObj).Get(PROP_TOP_RIGHT_X);
+      FBL := TJSONObject(LObj).Get(PROP_BOTTOM_LEFT_X);
+      FBR := TJSONObject(LObj).Get(PROP_BOTTOM_RIGHT_X);
 
       FRed := TJSONObject(LObj).Get(PROP_RED);
       FGreen := TJSONObject(LObj).Get(PROP_GREEN);

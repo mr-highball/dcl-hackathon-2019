@@ -15,7 +15,8 @@ uses
   BGRABitmap,
   BGRABitmapTypes,
   controller.base,
-  controller.registration.dto;
+  controller.registration.dto,
+  controller.image.dto;
 
 type
 
@@ -86,8 +87,8 @@ type
 function DitherImageStream(Const AImage : TStream; Const AURL : String;
   Const ABitmap : TBGRABitmap; Out Error : String) : Boolean;
 
-function ConstructDCLImageJSON(Const AImage : TBGRABitmap;
-  Out JSON, Error : String) : Boolean;
+function ConstructDCLImageResponse(Const AImage : TBGRABitmap;
+  Out Response : TImageResponse; Out Error : String) : Boolean;
 
 var
   RegistrationController: TRegistrationController;
@@ -104,6 +105,7 @@ uses
   controller.dto,
   ezthreads,
   ezthreads.collection,
+  controller.image,
   opensslsockets,
   fgl,
   fpjson,
@@ -201,8 +203,8 @@ begin
   end;
 end;
 
-function ConstructDCLImageJSON(Const AImage : TBGRABitmap;
-  Out JSON, Error : String) : Boolean;
+function ConstructDCLImageResponse(Const AImage : TBGRABitmap;
+  Out Response : TImageResponse; Out Error : String) : Boolean;
 type
   TRectangle = packed record
     TopLeft,
@@ -235,11 +237,12 @@ var
   LColor: TBGRAPixel;
   LCurPixel: TBGRAPixel;
   LAreaCalc, LFound, LCloseRect: Boolean;
-  LList: TStringList;
+  LCommands : TDrawCommands;
+  LCommand : TDrawCommand;
 begin
   (*
     essentially the below algorithm will attempt to "vectorize" an input
-    raster image into a series of draw rect commands (color/rect). this
+    raster image into a series of draw rect Response (color/rect). this
     won't be perfect, and isn't a trivial problem to solve, but due to the fact that
     dcl doesn't have native canvas commands or support to load a damn web image,
     it's the best stab I have at the problem right now...
@@ -485,24 +488,35 @@ begin
       end;
     end;
 
-    //*************
-    //testing code
-    //*************
-    LList := TStringList.Create;
-    for J := 0 to High(LRects) do
+    SetLength(LCommands, Length(LRects));
+    for J := 0 to Length(LCommands) do
     begin
+      //translate rect to command
       LRect := LRects[J];
-      LList.Add(
-        'DrawRect(container, ' +
-        IntToStr(LRect.Rect.TopLeft.X) + ',' +//origin
-        IntToStr(LRect.Rect.TopLeft.Y) + ',' +
-        IntToStr(Succ(LRect.Rect.TopRight.X) - LRect.Rect.TopLeft.X) + ',' + //width
-        IntToStr(Succ(LRect.Rect.BottomRight.Y) - LRect.Rect.TopRight.Y) + ',' + //height
-        'Color4.FromInts(' + IntToStr(LRect.Red) + ',' + IntToStr(LRect.Green) + ',' + IntToStr(LRect.Blue) + ',255))'
-      );
+      LCommand.Red := LRect.Red;
+      LCommand.Green := LRect.Green;
+      LCommand.Blue := LRect.Blue;
+      LCommand.Alpha := 255; //no alpha support right now
+
+      //translate x's
+      LCommand.TopLeftX := LRect.Rect.TopLeft.X;
+      LCommand.TopRightX := LRect.Rect.TopRight.X;
+      LCommand.BottomLeftX := LRect.Rect.BottomLeft.X;
+      LCommand.BottomRightX := LRect.Rect.BottomRight.X;
+
+      //translate y's
+      LCommand.TopLeftY := LRect.Rect.TopLeft.Y;
+      LCommand.TopRightY := LRect.Rect.TopRight.Y;
+      LCommand.BottomLeftY := LRect.Rect.BottomLeft.Y;
+      LCommand.BottomRightY := LRect.Rect.BottomRight.Y;
+
+      //update the command
+      LCommands[I] := LCommand;
     end;
-    LList.SaveToFile('drawInTs.txt');
-    //*************
+
+    //now set the commands in the response
+    Response.Commands := LCommands;
+
     //success
     Result := True;
   except on E : Exception do
@@ -554,7 +568,7 @@ begin
   try
     AResponse.ContentType := 'application/json';
     Handled := True;
-    LogRequester('ValidateAction::', ARequest);
+    LogRequester('RegisterAction::', ARequest);
 
     //try and parse the request
     LRequest.FromJSON(ARequest.Content);
@@ -713,7 +727,7 @@ begin
   try
     //try to fetch the id
     if not GetSQLResultsJSON(
-      'SELECT id FROM registration WHERE token = ' + QuotedStr(AImageToken) + ' LIMIT 1;',
+      'SELECT id as id FROM registration WHERE token = ' + QuotedStr(AImageToken) + ' LIMIT 1;',
       LData,
       LError
     ) then
@@ -758,20 +772,23 @@ var
   procedure Start(Const AThread : IEZThread);
   var
     LStatus : TStatusController;
+    LImage : TImageController;
     LData : TMemoryStream;
     LClient : TFPHTTPClient;
-    LError,
-    LJSON : String;
+    LError : String;
+    LResp : TImageResponse;
     LBitmap : TBGRABitmap;
   begin
     LStatus := TStatusController.Create(nil);
+    LImage := TImageController.Create(nil);
     LClient := TFPHTTPClient.Create(nil);
     LData := TMemoryStream.Create;
     LBitmap := TBGRABitmap.Create;
     try
       try
-        //update status to in-work
-        //todo... (use 'token')
+        //update status to in-progress
+        if not LStatus.UpdateStatus(AThread['token'], isInProgress, LError) then
+          raise Exception.Create(LError);
 
         //attempt to download the image
         LClient.Get(AThread['url'], LData);
@@ -787,16 +804,21 @@ var
 
         //after dithering has been completed, we can construct to a
         //dcl readable format
-        if not ConstructDCLImageJSON(LBitmap, LJSON, LError) then
+        if not ConstructDCLImageResponse(LBitmap, LResp, LError) then
         begin
           AThread.AddArg('error', LError);
           Exit;
         end;
+
+        //write the image response to the database
+        if not LImage.UpdateImage(AThread['token'], LResp, LError) then
+          AThread.AddArg('error', LError);
       finally
         LBitmap.Free;
         LData.Free;
         LClient.Free;
         LStatus.Free;
+        LImage.Free;
       end;
     except on E : Exception do
       AThread.AddArg('error', E.Message);

@@ -213,8 +213,8 @@ begin
 
       //attempt to update the status
       if not GetSQLResultsJSON(
-        'INSERT status (registration_id, status) SELECT ' + IntToStr(LID) + ',' +
-        ' ' + ImageStatusToString(ANewStatus) + ';' +
+        'INSERT INTO status (registration_id, status) SELECT ' + IntToStr(LID) + ',' +
+        ' ' + QuotedStr(ImageStatusToString(ANewStatus)) + ';' +
         'SELECT last_insert_rowid() AS id;',
         LData,
         Error

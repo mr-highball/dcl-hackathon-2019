@@ -10,14 +10,17 @@ uses
   controller.registration,
   controller.status,
   controller.image,
-  controller.settings;
+  controller.settings,
+  controller.registration.dto;
 
 const
   CONFIG_NAME = 'image_service_config.json';
 var
   LConfig : IJSONConfig;
   LError: String;
+  LTest : TRegisterURLRequest;
 begin
+  WriteLn(LTest.ToJSON);
   //create and load config if one exists
   LConfig := CreateJSONConfig;
 
