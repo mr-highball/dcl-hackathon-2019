@@ -15,18 +15,18 @@ type
   TDrawCommand = record
   public
     const
-      PROP_TOP_LEFT_X = 'topLeftX';
-      PROP_TOP_RIGHT_X = 'topRightX';
-      PROP_BOTTOM_LEFT_X = 'bottomLeftX';
-      PROP_BOTTOM_RIGHT_X = 'bottomRightX';
-      PROP_TOP_LEFT_Y = 'topLeftY';
-      PROP_TOP_RIGHT_Y = 'topRightY';
-      PROP_BOTTOM_LEFT_Y = 'bottomLeftY';
-      PROP_BOTTOM_RIGHT_Y = 'bottomRightY';
-      PROP_RED = 'red';
-      PROP_GREEN = 'green';
-      PROP_BLUE = 'blue';
-      PROP_ALPHA = 'alpha';
+      PROP_TOP_LEFT_X = 'topLX';
+      PROP_TOP_RIGHT_X = 'topRX';
+      PROP_BOTTOM_LEFT_X = 'botLX';
+      PROP_BOTTOM_RIGHT_X = 'botRX';
+      PROP_TOP_LEFT_Y = 'topLY';
+      PROP_TOP_RIGHT_Y = 'topRY';
+      PROP_BOTTOM_LEFT_Y = 'botLY';
+      PROP_BOTTOM_RIGHT_Y = 'botRY';
+      PROP_RED = 'r';
+      PROP_GREEN = 'g';
+      PROP_BLUE = 'b';
+      PROP_ALPHA = 'a';
   strict private
     FAlpha: Byte;
     FBL: Integer;

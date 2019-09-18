@@ -194,7 +194,6 @@ function TStatusController.UpdateStatus(const AImageToken: String;
 var
   LRegistration : TRegistrationController;
   LID: Integer;
-  LData: TDatasetResponse;
 begin
   Result := False;
 
@@ -212,19 +211,13 @@ begin
       end;
 
       //attempt to update the status
-      if not GetSQLResultsJSON(
+      if not ExecuteSQL(
         'INSERT INTO status (registration_id, status) SELECT ' + IntToStr(LID) + ',' +
-        ' ' + QuotedStr(ImageStatusToString(ANewStatus)) + ';' +
-        'SELECT last_insert_rowid() AS id;',
-        LData,
+        ' ' + QuotedStr(ImageStatusToString(ANewStatus)) + ';',
         Error
       ) then
-        Exit;
-
-      //check the count returned in data to see if we were successful
-      if LData.Count < 1 then
       begin
-        Error := 'UpdateStatus::unable to update status for image [' + AImageToken + '];';
+        Error := 'UpdateStatus::' + Error;
         Exit;
       end;
 
@@ -255,9 +248,9 @@ begin
       Exit;
     end;
 
-    //attempt to fetch the status
+    //attempt to fetch the most recent status
     if not GetSQLResultsJSON(
-      'SELECT status FROM status WHERE registration_id = ' + IntToStr(LID) + ' LIMT 1;',
+      'SELECT status FROM status WHERE registration_id = ' + IntToStr(LID) + ' ORDER BY id DESC LIMIT 1;',
       LData,
       Error
     ) then

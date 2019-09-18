@@ -77,10 +77,15 @@ begin
       Exit;
     end;
 
-    //upsert the image commands
+    //upsert the image commands by deleting first then inserting
     if not ExecuteSQL(
-      'DELETE image WHERE registration_id = ' + IntToStr(LID) + ';' +
-      'INSERT image(registration_id, commands)' +
+      'DELETE FROM image WHERE registration_id = ' + IntToStr(LID) + ';',
+      Error
+    ) then
+      Exit;
+
+    if not ExecuteSQL(
+      'INSERT INTO image(registration_id, commands)' +
       ' SELECT ' + IntToStr(LID) + ',' + QuotedStr(AImage.ToJSON) + ';',
       Error
     ) then

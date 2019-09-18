@@ -489,7 +489,7 @@ begin
     end;
 
     SetLength(LCommands, Length(LRects));
-    for J := 0 to Length(LCommands) do
+    for J := 0 to High(LCommands) do
     begin
       //translate rect to command
       LRect := LRects[J];
@@ -511,7 +511,7 @@ begin
       LCommand.BottomRightY := LRect.Rect.BottomRight.Y;
 
       //update the command
-      LCommands[I] := LCommand;
+      LCommands[J] := LCommand;
     end;
 
     //now set the commands in the response

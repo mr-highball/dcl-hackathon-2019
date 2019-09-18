@@ -363,18 +363,28 @@ begin
     connection.Open;
 
     try
-      //attempt to execute sql
-      connection.ExecuteDirect(ASQL);
+      //begin a transaction
+      transaction.StartTransaction;
+      try
+        //attempt to execute sql
+        connection.ExecuteDirect(ASQL);
 
-      //commit transaction the disk
-      transaction.Commit;
+        //commit transaction the disk
+        transaction.Commit;
 
-      Result := True;
+        Result := True;
+      finally
+        transaction.EndTransaction;
+      end;
+
     finally
       connection.Close;
     end;
   except on E : Exception do
+  begin
     Error := E.Message;
+    LogError('ExecuteSQL::sql exception occurred with [' + Error + '], here is the raw command:' + sLineBreak + ASQL + sLineBreak);
+  end
   end;
 end;
 
@@ -403,7 +413,6 @@ begin
 
       //init query
       LQuery.SQLConnection := connection;
-      LQuery.Transaction := transaction;
       LQuery.ReadOnly := True;
       LQuery.UniDirectional := True; //discards records after reading, smaller footprint
       LQuery.SQL.Text := ASQL;
@@ -411,57 +420,58 @@ begin
       //open the connection
       connection.Open;
 
-      //prepare the sql
-      LQuery.Prepare;
-
       //now we can open the query for reading
       LQuery.Open;
-
-      //traverse dataset and build up a json object to add to the the row
-      while not LQuery.EOF do
-      begin
-        LObj := TJSONObject.Create;
-        try
-          try
-
-            //iterate fields to build the object
-            for I := 0 to Pred(LQuery.FieldCount) do
-            begin
-              //get a reference to the field
-              LField := LQuery.Fields[I];
-
-              case LField.DataType of
-                //boolean case
-                ftBoolean : LObj.Add(LField.DisplayLabel, TJSONBoolean.Create(LField.AsBoolean));
-
-                //number types
-                ftInteger,
-                ftFloat,
-                ftCurrency,
-                ftsmallint,
-                ftLargeint,
-                ftWord : LObj.Add(LField.DisplayLabel, LField.AsFloat);
-
-                //default to string otherwise
-                else
-                  LObj.Add(LField.DisplayLabel, LField.AsString);
-              end;
-            end;
-
-            //add the row
-            Data.AddRow(LObj.AsJSON);
-          finally
-            LObj.Free;
-          end;
-        except on E : Exception do
+      try
+        //traverse dataset and build up a json object to add to the the row
+        while not LQuery.EOF do
         begin
-          Error := E.Message;
-          Exit;
-        end
-        end;
+          LObj := TJSONObject.Create;
+          try
+            try
 
-        //next row
-        LQuery.Next;
+              //iterate fields to build the object
+              for I := 0 to Pred(LQuery.FieldCount) do
+              begin
+                //get a reference to the field
+                LField := LQuery.Fields[I];
+
+                case LField.DataType of
+                  //boolean case
+                  ftBoolean : LObj.Add(LField.DisplayLabel, TJSONBoolean.Create(LField.AsBoolean));
+
+                  //number types
+                  ftInteger,
+                  ftFloat,
+                  ftCurrency,
+                  ftsmallint,
+                  ftLargeint,
+                  ftWord : LObj.Add(LField.DisplayLabel, LField.AsFloat);
+
+                  //default to string otherwise
+                  else
+                    LObj.Add(LField.DisplayLabel, LField.AsString);
+                end;
+              end;
+
+              //add the row
+              Data.AddRow(LObj.AsJSON);
+            finally
+              LObj.Free;
+            end;
+          except on E : Exception do
+          begin
+            Error := E.Message;
+            Exit;
+          end
+          end;
+
+          //next row
+          LQuery.Next;
+        end;
+      finally
+        LQuery.Close;
+        connection.Close;
       end;
 
       //success
