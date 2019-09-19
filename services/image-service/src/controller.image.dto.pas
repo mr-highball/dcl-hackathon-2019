@@ -6,7 +6,8 @@ interface
 
 uses
   Classes,
-  SysUtils;
+  SysUtils,
+  controller.auth.dto;
 
 type
 
@@ -66,6 +67,25 @@ type
 
   TDrawCommands = TArray<TDrawCommand>;
 
+  { TImageRequest }
+
+  TImageRequest = record
+  public
+    const
+      PROP_IMAGE = 'image';
+      PROP_AUTH = 'authentication';
+  strict private
+    FAuth: TLookupRequest;
+    FImage: TLookupRequest;
+  public
+    property Image : TLookupRequest read FImage write FImage;
+    property Authentication : TLookupRequest read FAuth write FAuth;
+
+    function ToJSON : String;
+    procedure FromJSON(Const AJSON : String);
+    constructor Create(Const AImageToken, AAuthToken : String);
+  end;
+
   { TImageResponse }
 
   TImageResponse = record
@@ -91,6 +111,60 @@ implementation
 uses
   fpjson,
   jsonparser;
+
+{ TImageRequest }
+
+function TImageRequest.ToJSON: String;
+var
+  LObj: TJSONObject;
+begin
+  LObj := TJSONObject.Create;
+  try
+    try
+      LObj.Add(PROP_IMAGE, GetJSON(FImage.ToJSON));
+      LObj.Add(PROP_AUTH, GetJSON(FAuth.ToJSON));
+
+      Result := LObj.AsJSON;
+    finally
+      LObj.Free;
+    end;
+  except
+      raise;
+  end;
+end;
+
+procedure TImageRequest.FromJSON(const AJSON: String);
+var
+  LObj: TJSONData;
+begin
+  LObj := GetJSON(AJSON);
+
+  if not Assigned(LObj) then
+    raise Exception.Create('TImageRequest::FromJSON::invalid json [' + AJSON + ']');
+
+  if not (LObj.JSONType = jtObject) then
+  begin
+    LObj.Free;
+    raise Exception.Create('TImageRequest::FromJSON::json is not valid object [' + AJSON + ']');
+  end;
+
+  try
+    try
+      FImage.FromJSON(TJSONObject(LObj).Objects[PROP_IMAGE].AsJSON);
+      FAuth.FromJSON(TJSONObject(LObj).Objects[PROP_AUTH].AsJSON);
+    finally
+      LObj.Free;
+    end;
+  except
+    raise;
+  end;
+end;
+
+constructor TImageRequest.Create(const AImageToken, AAuthToken: String);
+begin
+  FImage.Token := AImageToken;
+  FAuth.Token := AAuthToken;
+end;
 
 { TDrawCommand }
 
@@ -146,6 +220,11 @@ begin
       FTR := TJSONObject(LObj).Get(PROP_TOP_RIGHT_X);
       FBL := TJSONObject(LObj).Get(PROP_BOTTOM_LEFT_X);
       FBR := TJSONObject(LObj).Get(PROP_BOTTOM_RIGHT_X);
+
+      FTLY := TJSONObject(LObj).Get(PROP_TOP_LEFT_Y);
+      FTRY := TJSONObject(LObj).Get(PROP_TOP_RIGHT_Y);
+      FBLY := TJSONObject(LObj).Get(PROP_BOTTOM_LEFT_Y);
+      FBRY := TJSONObject(LObj).Get(PROP_BOTTOM_RIGHT_Y);
 
       FRed := TJSONObject(LObj).Get(PROP_RED);
       FGreen := TJSONObject(LObj).Get(PROP_GREEN);
