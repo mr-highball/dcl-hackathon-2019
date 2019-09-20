@@ -78,6 +78,7 @@ var
 begin
   try
     AResponse.ContentType := 'application/json';
+    AResponse.SetCustomHeader('Access-Control-Allow-Origin', '*');
     Handled := True;
     LogRequester('FetchAction::', ARequest);
 
