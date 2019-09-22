@@ -1,51 +1,317 @@
-/// --- Set up a system ---
+const scene = new Entity()
+const transform = new Transform({
+  position: new Vector3(0, 0, 0),
+  rotation: new Quaternion(0, 0, 0, 1),
+  scale: new Vector3(1, 1, 1)
+})
+scene.addComponentOrReplace(transform)
+engine.addEntity(scene)
 
-class RotatorSystem {
-  // this group will contain every entity that has a Transform component
-  group = engine.getComponentGroup(Transform)
+const floorBlock_04 = new Entity()
+floorBlock_04.setParent(scene)
+const gltfShape = new GLTFShape('models/FloorBlock_04/FloorBlock_04.glb')
+floorBlock_04.addComponentOrReplace(gltfShape)
+const transform_2 = new Transform({
+  position: new Vector3(8, 0, 1),
+  rotation: new Quaternion(0, -0.7071067811865477, 0, 0.7071067811865477),
+  scale: new Vector3(1, 1, 1)
+})
+floorBlock_04.addComponentOrReplace(transform_2)
+engine.addEntity(floorBlock_04)
 
-  update(dt: number) {
-    // iterate over the entities of the group
-    for (let entity of this.group.entities) {
-      // get the Transform component of the entity
-      const transform = entity.getComponent(Transform)
+const floorBlock_04_2 = new Entity()
+floorBlock_04_2.setParent(scene)
+floorBlock_04_2.addComponentOrReplace(gltfShape)
+const transform_3 = new Transform({
+  position: new Vector3(8, 0, 3),
+  rotation: new Quaternion(0, -0.7071067811865477, 0, 0.7071067811865477),
+  scale: new Vector3(1, 1, 1)
+})
+floorBlock_04_2.addComponentOrReplace(transform_3)
+engine.addEntity(floorBlock_04_2)
 
-      // mutate the rotation
-      transform.rotate(Vector3.Up(), dt * 10)
-    }
-  }
-}
+const floorBlock_04_3 = new Entity()
+floorBlock_04_3.setParent(scene)
+floorBlock_04_3.addComponentOrReplace(gltfShape)
+const transform_4 = new Transform({
+  position: new Vector3(8, 0, 5),
+  rotation: new Quaternion(0, -0.7071067811865477, 0, 0.7071067811865477),
+  scale: new Vector3(1, 1, 1)
+})
+floorBlock_04_3.addComponentOrReplace(transform_4)
+engine.addEntity(floorBlock_04_3)
 
-// Add a new instance of the system to the engine
-engine.addSystem(new RotatorSystem())
+const floorBlock_04_4 = new Entity()
+floorBlock_04_4.setParent(scene)
+floorBlock_04_4.addComponentOrReplace(gltfShape)
+const transform_5 = new Transform({
+  position: new Vector3(8, 0, 7),
+  rotation: new Quaternion(0, -0.7071067811865477, 0, 0.7071067811865477),
+  scale: new Vector3(1, 1, 1)
+})
+floorBlock_04_4.addComponentOrReplace(transform_5)
+engine.addEntity(floorBlock_04_4)
 
-/// --- Spawner function ---
+const floorBlock_04_5 = new Entity()
+floorBlock_04_5.setParent(scene)
+floorBlock_04_5.addComponentOrReplace(gltfShape)
+const transform_6 = new Transform({
+  position: new Vector3(10, 0, 7),
+  rotation: new Quaternion(0, -0.7071067811865477, 0, 0.7071067811865477),
+  scale: new Vector3(1, 1, 1)
+})
+floorBlock_04_5.addComponentOrReplace(transform_6)
+engine.addEntity(floorBlock_04_5)
 
-function spawnCube(x: number, y: number, z: number) {
-  // create the entity
-  const cube = new Entity()
+const floorBlock_04_6 = new Entity()
+floorBlock_04_6.setParent(scene)
+floorBlock_04_6.addComponentOrReplace(gltfShape)
+const transform_7 = new Transform({
+  position: new Vector3(10, 0, 9),
+  rotation: new Quaternion(0, -0.7071067811865477, 0, 0.7071067811865477),
+  scale: new Vector3(1, 1, 1)
+})
+floorBlock_04_6.addComponentOrReplace(transform_7)
+engine.addEntity(floorBlock_04_6)
 
-  // add a transform to the entity
-  cube.addComponent(new Transform({ position: new Vector3(x, y, z) }))
+const floorBlock_04_7 = new Entity()
+floorBlock_04_7.setParent(scene)
+floorBlock_04_7.addComponentOrReplace(gltfShape)
+const transform_8 = new Transform({
+  position: new Vector3(8, 0, 9),
+  rotation: new Quaternion(0, -0.7071067811865477, 0, 0.7071067811865477),
+  scale: new Vector3(1, 1, 1)
+})
+floorBlock_04_7.addComponentOrReplace(transform_8)
+engine.addEntity(floorBlock_04_7)
 
-  // add a shape to the entity
-  cube.addComponent(new BoxShape())
+const floorBlock_04_8 = new Entity()
+floorBlock_04_8.setParent(scene)
+floorBlock_04_8.addComponentOrReplace(gltfShape)
+const transform_9 = new Transform({
+  position: new Vector3(6, 0, 9),
+  rotation: new Quaternion(0, -0.7071067811865477, 0, 0.7071067811865477),
+  scale: new Vector3(1, 1, 1)
+})
+floorBlock_04_8.addComponentOrReplace(transform_9)
+engine.addEntity(floorBlock_04_8)
 
-  // add the entity to the engine
-  engine.addEntity(cube)
+const floorBlock_04_9 = new Entity()
+floorBlock_04_9.setParent(scene)
+floorBlock_04_9.addComponentOrReplace(gltfShape)
+const transform_10 = new Transform({
+  position: new Vector3(6, 0, 7),
+  rotation: new Quaternion(0, -0.7071067811865477, 0, 0.7071067811865477),
+  scale: new Vector3(1, 1, 1)
+})
+floorBlock_04_9.addComponentOrReplace(transform_10)
+engine.addEntity(floorBlock_04_9)
 
-  return cube
-}
+const floorBaseGrass_02 = new Entity()
+floorBaseGrass_02.setParent(scene)
+const gltfShape_2 = new GLTFShape('models/FloorBaseGrass_02/FloorBaseGrass_02.glb')
+floorBaseGrass_02.addComponentOrReplace(gltfShape_2)
+const transform_11 = new Transform({
+  position: new Vector3(8, 0, 8),
+  rotation: new Quaternion(0, 0, 0, 1),
+  scale: new Vector3(1, 1, 1)
+})
+floorBaseGrass_02.addComponentOrReplace(transform_11)
+engine.addEntity(floorBaseGrass_02)
 
-/// --- Spawn a cube ---
+const fencePicketWhiteMedium_01 = new Entity()
+fencePicketWhiteMedium_01.setParent(scene)
+const gltfShape_3 = new GLTFShape('models/FencePicketWhiteMedium_01/FencePicketWhiteMedium_01.glb')
+fencePicketWhiteMedium_01.addComponentOrReplace(gltfShape_3)
+const transform_12 = new Transform({
+  position: new Vector3(5, 0, 9),
+  rotation: new Quaternion(0, 0, 0, 1),
+  scale: new Vector3(1, 1, 1)
+})
+fencePicketWhiteMedium_01.addComponentOrReplace(transform_12)
+engine.addEntity(fencePicketWhiteMedium_01)
 
-const cube = spawnCube(8, 1, 8)
+const fencePicketWhiteMedium_01_2 = new Entity()
+fencePicketWhiteMedium_01_2.setParent(scene)
+fencePicketWhiteMedium_01_2.addComponentOrReplace(gltfShape_3)
+const transform_13 = new Transform({
+  position: new Vector3(11, 0, 9),
+  rotation: new Quaternion(0, 0, 0, 1),
+  scale: new Vector3(1, 1, 1)
+})
+fencePicketWhiteMedium_01_2.addComponentOrReplace(transform_13)
+engine.addEntity(fencePicketWhiteMedium_01_2)
 
-cube.addComponent(
-  new OnClick(() => {
-    cube.getComponent(Transform).scale.z *= 1.1
-    cube.getComponent(Transform).scale.x *= 0.9
+const tableBar_01 = new Entity()
+tableBar_01.setParent(scene)
+const gltfShape_4 = new GLTFShape('models/TableBar_01/TableBar_01.glb')
+tableBar_01.addComponentOrReplace(gltfShape_4)
+const transform_14 = new Transform({
+  position: new Vector3(13, 0, 11.5),
+  rotation: new Quaternion(0, 0, 0, 1),
+  scale: new Vector3(1, 1, 1)
+})
+tableBar_01.addComponentOrReplace(transform_14)
+engine.addEntity(tableBar_01)
 
-    spawnCube(Math.random() * 8 + 1, Math.random() * 8, Math.random() * 8 + 1)
-  })
-)
+const pot_02 = new Entity()
+pot_02.setParent(scene)
+const gltfShape_5 = new GLTFShape('models/Pot_02/Pot_02.glb')
+pot_02.addComponentOrReplace(gltfShape_5)
+const transform_15 = new Transform({
+  position: new Vector3(6, 0, 4.5),
+  rotation: new Quaternion(0, 0, 0, 1),
+  scale: new Vector3(1, 1, 1)
+})
+pot_02.addComponentOrReplace(transform_15)
+engine.addEntity(pot_02)
+
+const pot_02_2 = new Entity()
+pot_02_2.setParent(scene)
+pot_02_2.addComponentOrReplace(gltfShape_5)
+const transform_16 = new Transform({
+  position: new Vector3(10, 0, 4.5),
+  rotation: new Quaternion(0, 0, 0, 1),
+  scale: new Vector3(1, 1, 1)
+})
+pot_02_2.addComponentOrReplace(transform_16)
+engine.addEntity(pot_02_2)
+
+const pot_02_3 = new Entity()
+pot_02_3.setParent(scene)
+pot_02_3.addComponentOrReplace(gltfShape_5)
+const transform_17 = new Transform({
+  position: new Vector3(10, 0, 1.5),
+  rotation: new Quaternion(0, 0, 0, 1),
+  scale: new Vector3(1, 1, 1)
+})
+pot_02_3.addComponentOrReplace(transform_17)
+engine.addEntity(pot_02_3)
+
+const pot_02_4 = new Entity()
+pot_02_4.setParent(scene)
+pot_02_4.addComponentOrReplace(gltfShape_5)
+const transform_18 = new Transform({
+  position: new Vector3(6, 0, 1.5),
+  rotation: new Quaternion(0, 0, 0, 1),
+  scale: new Vector3(1, 1, 1)
+})
+pot_02_4.addComponentOrReplace(transform_18)
+engine.addEntity(pot_02_4)
+
+const chair_03 = new Entity()
+chair_03.setParent(scene)
+const gltfShape_6 = new GLTFShape('models/Chair_03/Chair_03.glb')
+chair_03.addComponentOrReplace(gltfShape_6)
+const transform_19 = new Transform({
+  position: new Vector3(13, 0, 13),
+  rotation: new Quaternion(0, -0.5555702330196024, 0, 0.8314696123025453),
+  scale: new Vector3(1, 1, 1)
+})
+chair_03.addComponentOrReplace(transform_19)
+engine.addEntity(chair_03)
+
+const geckoStone_01 = new Entity()
+geckoStone_01.setParent(scene)
+const gltfShape_7 = new GLTFShape('models/GeckoStone_01/GeckoStone_01.glb')
+geckoStone_01.addComponentOrReplace(gltfShape_7)
+const transform_20 = new Transform({
+  position: new Vector3(13, 0.5, 13),
+  rotation: new Quaternion(0, -0.9569403357322092, 0, 0.2902846772544627),
+  scale: new Vector3(1, 1, 1)
+})
+geckoStone_01.addComponentOrReplace(transform_20)
+engine.addEntity(geckoStone_01)
+
+const bush_01 = new Entity()
+bush_01.setParent(scene)
+const gltfShape_8 = new GLTFShape('models/Bush_01/Bush_01.glb')
+bush_01.addComponentOrReplace(gltfShape_8)
+const transform_21 = new Transform({
+  position: new Vector3(2.5, 0, 13),
+  rotation: new Quaternion(0, 0, 0, 1),
+  scale: new Vector3(1, 1, 1)
+})
+bush_01.addComponentOrReplace(transform_21)
+engine.addEntity(bush_01)
+
+const flower_04 = new Entity()
+flower_04.setParent(scene)
+const gltfShape_9 = new GLTFShape('models/Flower_04/Flower_04.glb')
+flower_04.addComponentOrReplace(gltfShape_9)
+const transform_22 = new Transform({
+  position: new Vector3(10, 0.5, 4.5),
+  rotation: new Quaternion(0, 0, 0, 1),
+  scale: new Vector3(1, 1, 1)
+})
+flower_04.addComponentOrReplace(transform_22)
+engine.addEntity(flower_04)
+
+const flower_04_2 = new Entity()
+flower_04_2.setParent(scene)
+flower_04_2.addComponentOrReplace(gltfShape_9)
+const transform_23 = new Transform({
+  position: new Vector3(10, 0.5, 1.5),
+  rotation: new Quaternion(0, 0, 0, 1),
+  scale: new Vector3(1, 1, 1)
+})
+flower_04_2.addComponentOrReplace(transform_23)
+engine.addEntity(flower_04_2)
+
+const flower_04_3 = new Entity()
+flower_04_3.setParent(scene)
+flower_04_3.addComponentOrReplace(gltfShape_9)
+const transform_24 = new Transform({
+  position: new Vector3(6, 0.5, 1.5),
+  rotation: new Quaternion(0, 0, 0, 1),
+  scale: new Vector3(1, 1, 1)
+})
+flower_04_3.addComponentOrReplace(transform_24)
+engine.addEntity(flower_04_3)
+
+const flower_04_4 = new Entity()
+flower_04_4.setParent(scene)
+flower_04_4.addComponentOrReplace(gltfShape_9)
+const transform_25 = new Transform({
+  position: new Vector3(6, 0.5, 4.5),
+  rotation: new Quaternion(0, 0, 0, 1),
+  scale: new Vector3(1, 1, 1)
+})
+flower_04_4.addComponentOrReplace(transform_25)
+engine.addEntity(flower_04_4)
+
+const bush_02 = new Entity()
+bush_02.setParent(scene)
+const gltfShape_10 = new GLTFShape('models/Bush_02/Bush_02.glb')
+bush_02.addComponentOrReplace(gltfShape_10)
+const transform_26 = new Transform({
+  position: new Vector3(14, 0, 2.5),
+  rotation: new Quaternion(0, 0, 0, 1),
+  scale: new Vector3(1, 1, 1)
+})
+bush_02.addComponentOrReplace(transform_26)
+engine.addEntity(bush_02)
+
+const rockMediumMoss_01 = new Entity()
+rockMediumMoss_01.setParent(scene)
+const gltfShape_11 = new GLTFShape('models/RockMediumMoss_01/RockMediumMoss_01.glb')
+rockMediumMoss_01.addComponentOrReplace(gltfShape_11)
+const transform_27 = new Transform({
+  position: new Vector3(4, 0, 4.5),
+  rotation: new Quaternion(0, 0, 0, 1),
+  scale: new Vector3(1, 1, 1)
+})
+rockMediumMoss_01.addComponentOrReplace(transform_27)
+engine.addEntity(rockMediumMoss_01)
+
+const rockMedium_01 = new Entity()
+rockMedium_01.setParent(scene)
+const gltfShape_12 = new GLTFShape('models/RockMedium_01/RockMedium_01.glb')
+rockMedium_01.addComponentOrReplace(gltfShape_12)
+const transform_28 = new Transform({
+  position: new Vector3(15, 0, 10.5),
+  rotation: new Quaternion(0, 0, 0, 1),
+  scale: new Vector3(1, 1, 1)
+})
+rockMedium_01.addComponentOrReplace(transform_28)
+engine.addEntity(rockMedium_01)

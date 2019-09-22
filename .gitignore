@@ -140,3 +140,6 @@ lib/
 *.json
 *.txt
 *.log
+
+#output for dcl
+bin/
