@@ -319,12 +319,12 @@ engine.addEntity(rockMedium_01)
 //add our billboard model
 const billboard = new Entity()
 billboard.setParent(scene)
-const billboardShape = new GLTFShape('models/billboard/untitled.glb')
-billboard.addComponentOrReplace(billboardShape)
-const billboardTransform = new Transform({
-  position: new Vector3(8, 0, 9.5),
-  rotation: new Quaternion(0, 0, 0, 1),
-  scale: new Vector3(5, 3, 5)
+const gltfShape_13 = new GLTFShape('models/billboard/billboard.glb')
+billboard.addComponentOrReplace(gltfShape_13)
+const transform_29 = new Transform({
+  position: new Vector3(8, 0, 10),
+  rotation: new Quaternion(0, -1.0000000000000002, 0, 1.8041124150158794e-16),
+  scale: new Vector3(4.5, 2, 1.5)
 })
-billboard.addComponentOrReplace(billboardTransform)
+billboard.addComponentOrReplace(transform_29)
 engine.addEntity(billboard)
