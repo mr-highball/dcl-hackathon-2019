@@ -1,3 +1,5 @@
+import * as demo from 'imagedemo'
+
 const scene = new Entity()
 const transform = new Transform({
   position: new Vector3(0, 0, 0),
@@ -328,3 +330,29 @@ const transform_29 = new Transform({
 })
 billboard.addComponentOrReplace(transform_29)
 engine.addEntity(billboard)
+
+//testing code
+let canvas = new UICanvas();
+canvas.width = '100%';
+canvas.height = '100%';
+
+let container = new UIContainerRect(canvas);
+//container.color = Color4.Gray();
+container.width = '100%';
+container.height = '100%';
+
+
+//setup a demo button
+let test = new demo.DemoButtonUI(container);
+test.anchor = demo.UIAnchor.BOTTOM_CENTER;
+test.buttonClickEvent = new OnClick(() =>
+  {
+    log('clicked the button');
+  }
+);
+
+//render control to scene
+test.Init();
+
+
+canvas.visible = true;
