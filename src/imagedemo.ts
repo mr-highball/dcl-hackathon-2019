@@ -230,12 +230,12 @@ export class DemoButtonUI extends DemoUI
 
     public get fontColor() : Color4
     {
-        return this._color;
+        return this._fontColor;
     }
 
     public set fontColor(value : Color4)
     {
-        this._color = value;
+        this._fontColor = value;
     }
 
     public get anchor() : UIAnchor
@@ -258,7 +258,7 @@ export class DemoButtonUI extends DemoUI
 
         //set the position of our start button
         let button = this.ControlByName('startButton') as UIContainerRect;
-        button.color = this._color;
+        button.color = this.buttonColor;
         button.opacity = 0.8;
         button.hAlign = adapter.horizontal;
         button.vAlign = adapter.vertical;
@@ -276,8 +276,8 @@ export class DemoButtonUI extends DemoUI
         text.vAlign = 'center';
         text.value = this._text;
         text.fontAutoSize = true;
-        text.outlineWidth = 0.1;
-        text.outlineColor = this._fontColor;
+        text.outlineWidth = 0.15;
+        text.outlineColor = Color4.Black();
         text.isPointerBlocker = false;
 
         //since we can't remove UI controls right now, just hide this clicker

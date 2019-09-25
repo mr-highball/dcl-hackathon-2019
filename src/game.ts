@@ -344,7 +344,10 @@ container.height = '100%';
 
 //setup a demo button
 let test = new demo.DemoButtonUI(container);
+test.buttonText = "Click Me!";
 test.anchor = demo.UIAnchor.BOTTOM_CENTER;
+test.buttonColor = Color4.Red();
+test.fontColor = Color4.White();
 test.buttonClickEvent = new OnClick(() =>
   {
     log('clicked the button');
