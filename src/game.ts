@@ -1,4 +1,5 @@
 import * as demo from 'imagedemo'
+import * as img from 'image';
 
 const scene = new Entity()
 const transform = new Transform({
@@ -341,16 +342,63 @@ let container = new UIContainerRect(canvas);
 container.width = '100%';
 container.height = '100%';
 
+//create an input control for collecting the URL
+let input = new UIInputText(canvas);
+input.name = 'Please paste in a valid image URL (.png, jpeg, etc...):';
+input.placeholder = 'paste a url...';
+
+let adapter = demo.CreateAlignAdapter(demo.UIAnchor.CENTER);
+input.vAlign = adapter.vertical;
+input.hAlign = adapter.horizontal;
+input.autoStretchWidth = true;
+input.height = 30;
+input.width = 15 * input.placeholder.length;
+input.textWrapping = false;
+input.color = Color4.Black(); //these don't seem to do anything?
+input.background = Color4.Gray(); //these don't seem to do anything?
+input.fontSize  = 30;
+input.visible = false;
+
+//setup the submit event for capturing
+input.onTextSubmit = new OnTextSubmit(async event => 
+  {
+    log('the text is: ' + event.text);
+    input.visible = false;
+    test.buttonText = 'Waiting...';
+    test.buttonColor = Color4.Yellow();
+    test.Init();
+
+    /*let image = img.FetchImage(
+      canvas,
+      '',
+      1
+    );*/
+
+    //DrawImage(image);
+  }
+);
+
+async function DrawImage(image : Promise<UIShape>)
+{
+  log('made it to DrawImage');
+  let i = await image;
+  i.vAlign = 'center';
+  i.hAlign = 'center';
+  i.visible = true;
+}
 
 //setup a demo button
 let test = new demo.DemoButtonUI(container);
-test.buttonText = "Click Me!";
-test.anchor = demo.UIAnchor.BOTTOM_CENTER;
-test.buttonColor = Color4.Red();
+test.buttonText = "Start!";
+test.anchor = demo.UIAnchor.CENTER_RIGHT;
+test.fontAnchor = demo.UIAnchor.CENTER;
+test.widthPercentage = 10;
+test.heightPercentage = 15;
+test.buttonColor = Color4.Green();
 test.fontColor = Color4.White();
 test.buttonClickEvent = new OnClick(() =>
   {
-    log('clicked the button');
+    input.visible = true;
   }
 );
 

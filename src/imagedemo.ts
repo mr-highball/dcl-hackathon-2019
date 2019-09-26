@@ -11,6 +11,7 @@ export class DemoUI
     {
         try
         {
+            this.visible = false;
             this.DoInit();
             this.visible = true;
             this.DoAfterInit();
@@ -108,7 +109,8 @@ export enum UIAnchor
     CENTER_RIGHT,
     BOTTOM_LEFT,
     BOTTOM_CENTER,
-    BOTTOM_RIGHT
+    BOTTOM_RIGHT,
+    FILL
 }
 
 export class AlignAdapter
@@ -118,7 +120,6 @@ export class AlignAdapter
     
     public Adapt(anchor : UIAnchor) : void
     {
-        log('made it');
         switch(anchor)
         {
             case UIAnchor.TOP_LEFT:
@@ -135,7 +136,7 @@ export class AlignAdapter
             }
             case UIAnchor.TOP_RIGHT:
             {
-                this.horizontal = 'center';
+                this.horizontal = 'right';
                 this.vertical = 'top';
                 break;
             }
@@ -145,7 +146,9 @@ export class AlignAdapter
                 this.vertical = 'center';
                 break;
             }
-            case UIAnchor.CENTER:
+            //treat center and fill the same, it will be up to the 
+            //component to handle it
+            case UIAnchor.CENTER, UIAnchor.FILL:
             {
                 this.horizontal = 'center';
                 this.vertical = 'center';
@@ -238,6 +241,26 @@ export class DemoButtonUI extends DemoUI
         this._fontColor = value;
     }
 
+    public get widthPercentage() : number
+    {
+        return this._width;
+    }
+
+    public set widthPercentage(value : number)
+    {
+        this._width = value > 0 ? value > 100 ? 100 : value : 0;
+    }
+
+    public get heightPercentage() : number
+    {
+        return this._height;
+    }
+
+    public set heightPercentage(value : number)
+    {
+        this._height = value > 0 ? value > 100 ? 100 : value : 0;
+    }
+
     public get anchor() : UIAnchor
     {
         return this._anchor;
@@ -247,6 +270,27 @@ export class DemoButtonUI extends DemoUI
     {
         this._anchor = value;
     }
+
+    public get fontAnchor() : UIAnchor
+    {
+        return this._fontAnchor;
+    }
+
+    public set fontAnchor(value : UIAnchor)
+    {
+        this._fontAnchor = value;
+    }
+
+    public get fontSize() : number
+    {
+        return this._fontSize;
+    }
+
+    public set fontSize(value : number)
+    {
+        this._fontSize = value;
+    }
+    
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     //PROTECTED
@@ -264,18 +308,27 @@ export class DemoButtonUI extends DemoUI
         button.vAlign = adapter.vertical;
         //button.positionX = -25; //todo - define a margin?
         //button.positionY = 50;
-        button.width = '10%';
-        button.height = '10%';
+        if (this._anchor != UIAnchor.FILL)
+        {
+            button.width = this._width + '%';
+            button.height = this._height + '%';
+        }
+        else
+        {
+            button.width = '100%';
+            button.height = '100%';
+        }
+        
         button.isPointerBlocker = false;
 
         //get and initialize our text
+        adapter = CreateAlignAdapter(this._fontAnchor);
         let text = this.ControlByName('startButtonText') as UIText;
-        text.adaptWidth = true;
-        text.adaptHeight = true;
-        text.hAlign = 'center';
-        text.vAlign = 'center';
+        text.hAlign = adapter.horizontal;
+        text.vAlign = adapter.vertical;
         text.value = this._text;
-        text.fontAutoSize = true;
+        text.fontAutoSize = this._fontSize > 0 ? false : true;
+        text.fontSize = this._fontSize;
         text.outlineWidth = 0.15;
         text.outlineColor = Color4.Black();
         text.isPointerBlocker = false;
@@ -340,4 +393,8 @@ export class DemoButtonUI extends DemoUI
     private _fontColor : Color4 = Color4.White();
     private _anchor : UIAnchor = UIAnchor.BOTTOM_RIGHT;
     private _clicker : UIImage = null;
+    private _fontAnchor : UIAnchor = UIAnchor.CENTER;
+    private _width : number = 10;
+    private _height : number = 10;
+    private _fontSize : number = -1;
 }
