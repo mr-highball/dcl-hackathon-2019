@@ -17,7 +17,7 @@ export interface ICommands {
     commands: ICommand[];
 }
   
-function DupeStr(value : string, amount : number) : string
+export function DupeStr(value : string, amount : number) : string
 {
     let result = "";
 
@@ -29,7 +29,7 @@ function DupeStr(value : string, amount : number) : string
 }
 
 
-function DrawRect(canvas : UIShape, x : number, y : number, width : number, height : number, color : Color4) : void
+export function DrawRect(canvas : UIShape, x : number, y : number, width : number, height : number, color : Color4) : void
 {
     //safe way to convert the dimensions to a number, however percentages won't work right
     const w = <number><unknown>canvas.width.toString().replace("px", "").replace("%", "");
@@ -48,11 +48,11 @@ function DrawRect(canvas : UIShape, x : number, y : number, width : number, heig
     rect.color = color;
 }
 
-export async function FetchImage(
+export function FetchImage(
     parent : UIShape, //can be the canvas or any other parent
     token : string, //image token provided by the call to register
     scale : number = 1.0 //a multiplier that can be applied to the final result image
-) : Promise<UIShape>
+) : void
 {
     log('1');
     let result = new UIContainerRect(parent);
@@ -61,7 +61,7 @@ export async function FetchImage(
     result.width = 64;
     result.height = 64;
     log('3');
-    let task = executeTask(async () => 
+    executeTask(async () => 
         {
             log('4'); 
             let response = await fetch(
@@ -95,11 +95,11 @@ export async function FetchImage(
                     );
                 }
             );
-    
+                
+            //now mark the result image visible
+            result.visible = true;
         }
+    ).catch(
+        error => log(error)
     );
-
-    await task;
-    
-    return result;
 }

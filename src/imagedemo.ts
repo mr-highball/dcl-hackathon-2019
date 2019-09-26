@@ -182,6 +182,13 @@ export class AlignAdapter
                 break;
         }
     }
+
+    public AdaptShape(anchor : UIAnchor, shape : UIShape) : void
+    {
+        this.Adapt(anchor);
+        shape.vAlign = this.vertical;
+        shape.hAlign = this.horizontal;
+    }
 }
 
 /*
@@ -264,6 +271,11 @@ export class DemoButtonUI extends DemoUI
     public get anchor() : UIAnchor
     {
         return this._anchor;
+    }
+
+    public get background() : UIShape
+    {
+        return this.ControlByName('startButton');
     }
 
     public set anchor(value : UIAnchor)

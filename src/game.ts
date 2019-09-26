@@ -332,15 +332,10 @@ const transform_29 = new Transform({
 billboard.addComponentOrReplace(transform_29)
 engine.addEntity(billboard)
 
-//testing code
+//create a canvas for our ui elemnts
 let canvas = new UICanvas();
 canvas.width = '100%';
 canvas.height = '100%';
-
-let container = new UIContainerRect(canvas);
-//container.color = Color4.Gray();
-container.width = '100%';
-container.height = '100%';
 
 //create an input control for collecting the URL
 let input = new UIInputText(canvas);
@@ -360,7 +355,7 @@ input.fontSize  = 30;
 input.visible = false;
 
 //setup the submit event for capturing
-input.onTextSubmit = new OnTextSubmit(async event => 
+input.onTextSubmit = new OnTextSubmit(event => 
   {
     log('the text is: ' + event.text);
     input.visible = false;
@@ -368,27 +363,28 @@ input.onTextSubmit = new OnTextSubmit(async event =>
     test.buttonColor = Color4.Yellow();
     test.Init();
 
-    /*let image = img.FetchImage(
-      canvas,
+    //create a container to hold the image
+    let image = new UIContainerRect(canvas);
+    image.color = Color4.White();
+    let adapter = new demo.AlignAdapter();
+    adapter.AdaptShape(demo.UIAnchor.CENTER, image);
+    
+    //set some loading text
+    let loadingText = new UIText(image);
+    loadingText.value = 'loading...';
+    loadingText.color = Color4.Black();
+    adapter.AdaptShape(demo.UIAnchor.CENTER, loadingText);
+
+    img.FetchImage(
+      image,
       '',
       1
-    );*/
-
-    //DrawImage(image);
+    );
   }
 );
 
-async function DrawImage(image : Promise<UIShape>)
-{
-  log('made it to DrawImage');
-  let i = await image;
-  i.vAlign = 'center';
-  i.hAlign = 'center';
-  i.visible = true;
-}
-
 //setup a demo button
-let test = new demo.DemoButtonUI(container);
+let test = new demo.DemoButtonUI(canvas);
 test.buttonText = "Start!";
 test.anchor = demo.UIAnchor.CENTER_RIGHT;
 test.fontAnchor = demo.UIAnchor.CENTER;
