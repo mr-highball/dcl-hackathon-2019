@@ -26,7 +26,7 @@ begin
 
   if not FileExists(CONFIG_NAME) then
   begin
-    LConfig.UpsertValue('port', '8080'); //set default port
+    LConfig.UpsertValue('port', '8083'); //set default port
     LConfig.UpsertValue('databaseName', 'image_service.sqlite3'); //default db name
     LConfig.UpsertValue('authServiceAddress', '127.0.0.1:8081'); //default db name
     LConfig.UpsertValue('maxImageWidth', '64');
@@ -51,7 +51,7 @@ begin
 
   //init web app
   Application.Title:='image_service';
-  Application.Port:=StrToIntDef(LConfig['port'], 8080); //shouldn't fail, but default here
+  Application.Port:=StrToIntDef(LConfig['port'], 8083); //shouldn't fail, but default here
   Application.Threaded:=True; //thread for every request
   Application.Initialize;
   Application.Run;

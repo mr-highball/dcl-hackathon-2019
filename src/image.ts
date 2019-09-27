@@ -48,11 +48,11 @@ export function DrawRect(canvas : UIShape, x : number, y : number, width : numbe
     rect.color = color;
 }
 
-export function FetchImage(
+export async function FetchImage(
     parent : UIShape, //can be the canvas or any other parent
     token : string, //image token provided by the call to register
     scale : number = 1.0 //a multiplier that can be applied to the final result image
-) : void
+) 
 {
     log('1');
     let result = new UIContainerRect(parent);
@@ -61,45 +61,38 @@ export function FetchImage(
     result.width = 64;
     result.height = 64;
     log('3');
-    executeTask(async () => 
+    let response = await fetch(
+        'http://highball.dcl.dev.com:8080/controller/image?a=fetch',
         {
-            log('4'); 
-            let response = await fetch(
-                'http://highball.dcl.dev.com:8080/controller/image?a=fetch',
-                {
-                    body : JSON.stringify({ image : { token : '{728CECC6-B8A2-423A-9089-33F4B5925731}'}, authentication : { token : '{74DB8A78-D394-43FB-ADA9-F3E6F6963216}'}}),
-                    method : 'POST',
-                }
-            );
-            log('5');
-            let json = await response.json()
-            let c = json as ICommands;
-            log('6');
-            
-            //for each of the commands we call draw rect after adapting to the 
-            //our command signature
-            c.commands.forEach(command => 
-                {
-                    DrawRect(
-                        result, 
-                        command.topLX, 
-                        command.topLY, 
-                        (command.topRX + 1) - command.topLX, 
-                        (command.botRY + 1) - command.topRY,
-                        Color4.FromInts(
-                            command.r, 
-                            command.g, 
-                            command.b, 
-                            command.a
-                        )
-                    );
-                }
-            );
-                
-            //now mark the result image visible
-            result.visible = true;
+            body : JSON.stringify({ image : { token : '{728CECC6-B8A2-423A-9089-33F4B5925731}'}, authentication : { token : '{74DB8A78-D394-43FB-ADA9-F3E6F6963216}'}}),
+            method : 'POST',
         }
-    ).catch(
-        error => log(error)
     );
+    log('5');
+    let json = await response.json()
+    let c = json as ICommands;
+    log('6');
+    
+    //for each of the commands we call draw rect after adapting to the 
+    //our command signature
+    c.commands.forEach(command => 
+        {
+            DrawRect(
+                result, 
+                command.topLX, 
+                command.topLY, 
+                (command.topRX + 1) - command.topLX, 
+                (command.botRY + 1) - command.topRY,
+                Color4.FromInts(
+                    command.r, 
+                    command.g, 
+                    command.b, 
+                    command.a
+                )
+            );
+        }
+    );
+        
+    //now mark the result image visible
+    result.visible = true;
 }

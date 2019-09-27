@@ -77,9 +77,10 @@ var
   LError: String;
 begin
   try
+    Handled := True;
     AResponse.ContentType := 'application/json';
     AResponse.SetCustomHeader('Access-Control-Allow-Origin', '*');
-    Handled := True;
+    AResponse.SetCustomHeader('Access-Control-Expose-Headers', 'ETag');
     LogRequester('FetchAction::', ARequest);
 
     //try and parse the request

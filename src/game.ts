@@ -1,6 +1,6 @@
-import * as demo from 'imagedemo'
+//import * as demo from 'imagedemo';
 import * as img from 'image';
-
+/*
 const scene = new Entity()
 const transform = new Transform({
   position: new Vector3(0, 0, 0),
@@ -331,12 +331,15 @@ const transform_29 = new Transform({
 })
 billboard.addComponentOrReplace(transform_29)
 engine.addEntity(billboard)
+*/
 
 //create a canvas for our ui elemnts
 let canvas = new UICanvas();
 canvas.width = '100%';
-canvas.height = '100%';
+canvas.height = '100%'
+canvas.visible = true;
 
+/*
 //create an input control for collecting the URL
 let input = new UIInputText(canvas);
 input.name = 'Please paste in a valid image URL (.png, jpeg, etc...):';
@@ -352,8 +355,64 @@ input.textWrapping = false;
 input.color = Color4.Black(); //these don't seem to do anything?
 input.background = Color4.Gray(); //these don't seem to do anything?
 input.fontSize  = 30;
-input.visible = false;
+input.visible = false;*/
 
+//-----------------------------------------------------
+executeTask(async () =>
+  {
+      log('1');
+      let result = new UIContainerRect(canvas);
+      log('2');
+      result.visible = false;
+      result.width = 64;
+      result.height = 64;
+      log('3');
+      let response = await fetch(
+          'http://highball.dcl.dev.com:8083/controller/image?a=fetch',
+          {
+              body : JSON.stringify({ image : { token : '{728CECC6-B8A2-423A-9089-33F4B5925731}'}, authentication : { token : '{74DB8A78-D394-43FB-ADA9-F3E6F6963216}'}}),
+              method : 'POST'
+          }
+      ).then(
+        async success =>
+        {
+          log('5');
+          let json = await success.json();
+          let c = json as img.ICommands;
+          log('6');
+          
+          //for each of the commands we call draw rect after adapting to the 
+          //our command signature
+          c.commands.forEach(command => 
+              {
+                  img.DrawRect(
+                      result, 
+                      command.topLX, 
+                      command.topLY, 
+                      (command.topRX + 1) - command.topLX, 
+                      (command.botRY + 1) - command.topRY,
+                      Color4.FromInts(
+                          command.r, 
+                          command.g, 
+                          command.b, 
+                          command.a
+                      )
+                  );
+              }
+          );
+        },
+        failure  =>
+        {
+          log(failure);
+        }
+      );
+
+      
+    }
+);
+//-----------------------------------------------------
+
+/*
 //setup the submit event for capturing
 input.onTextSubmit = new OnTextSubmit(event => 
   {
@@ -400,6 +459,4 @@ test.buttonClickEvent = new OnClick(() =>
 
 //render control to scene
 test.Init();
-
-
-canvas.visible = true;
+*/
