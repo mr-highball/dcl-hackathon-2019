@@ -11,3 +11,5 @@ node_modules
 *.tsx
 Dockerfile
 dist
+.git
+services

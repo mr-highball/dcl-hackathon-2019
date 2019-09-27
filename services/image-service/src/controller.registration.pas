@@ -536,6 +536,7 @@ begin
     LResult.Success := False;
 
     AResponse.ContentType := 'application/json';
+    AResponse.SetCustomHeader('Access-Control-Allow-Origin', '*');
     Handled := True;
     LogRequester('ValidateAction::', ARequest);
 
@@ -567,6 +568,7 @@ var
 begin
   try
     AResponse.ContentType := 'application/json';
+    AResponse.SetCustomHeader('Access-Control-Allow-Origin', '*');
     Handled := True;
     LogRequester('RegisterAction::', ARequest);
 

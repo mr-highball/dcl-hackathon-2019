@@ -1,6 +1,6 @@
-//import * as demo from 'imagedemo';
+import * as demo from 'imagedemo';
 import * as img from 'image';
-/*
+
 const scene = new Entity()
 const transform = new Transform({
   position: new Vector3(0, 0, 0),
@@ -330,8 +330,7 @@ const transform_29 = new Transform({
   scale: new Vector3(4.5, 2, 1.5)
 })
 billboard.addComponentOrReplace(transform_29)
-engine.addEntity(billboard)
-*/
+engine.addEntity(billboard);
 
 //create a canvas for our ui elemnts
 let canvas = new UICanvas();
@@ -339,7 +338,7 @@ canvas.width = '100%';
 canvas.height = '100%'
 canvas.visible = true;
 
-/*
+
 //create an input control for collecting the URL
 let input = new UIInputText(canvas);
 input.name = 'Please paste in a valid image URL (.png, jpeg, etc...):';
@@ -355,9 +354,10 @@ input.textWrapping = false;
 input.color = Color4.Black(); //these don't seem to do anything?
 input.background = Color4.Gray(); //these don't seem to do anything?
 input.fontSize  = 30;
-input.visible = false;*/
+input.visible = false;
 
 //-----------------------------------------------------
+/*
 executeTask(async () =>
   {
       log('1');
@@ -370,7 +370,7 @@ executeTask(async () =>
       let response = await fetch(
           'http://highball.dcl.dev.com:8083/controller/image?a=fetch',
           {
-              body : JSON.stringify({ image : { token : '{728CECC6-B8A2-423A-9089-33F4B5925731}'}, authentication : { token : '{74DB8A78-D394-43FB-ADA9-F3E6F6963216}'}}),
+              body : JSON.stringify({ image : { token : '{4FA8E3CE-63A1-43CF-9EBF-1480607FFF2A}'}, authentication : { token : '{74DB8A78-D394-43FB-ADA9-F3E6F6963216}'}}),
               method : 'POST'
           }
       ).then(
@@ -378,6 +378,7 @@ executeTask(async () =>
         {
           log('5');
           let json = await success.json();
+          log('image service response: ' + json)
           let c = json as img.ICommands;
           log('6');
           
@@ -398,25 +399,45 @@ executeTask(async () =>
                           command.a
                       )
                   );
+
+                  result.visible = true;
               }
           );
         },
         failure  =>
         {
-          log(failure);
+          log('image service failed: ' + failure);
         }
-      );
-
-      
+      );    
     }
 );
+*/
 //-----------------------------------------------------
 
-/*
+
 //setup the submit event for capturing
-input.onTextSubmit = new OnTextSubmit(event => 
+input.onTextSubmit = new OnTextSubmit(async event => 
   {
     log('the text is: ' + event.text);
+
+    //below are shortcuts since UIInputText doesn't allow pasting at the time of writing
+    let text : string = event.text;
+    
+    if (text.indexOf('1') >= 0)
+      text = 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Classic_smiley.svg/1026px-Classic_smiley.svg.png';
+    else if (text.indexOf('1') >= 0)
+      text = 'https://illinoisalumni.org/wp-content/uploads/vfb/2016/03/Test-JPEG-2.jpg';
+    else if (text.indexOf('1') >= 0)
+      text = 'https://test-ipv6.com/images/hires_ok.png';
+    else if (text.indexOf('1') >= 0)
+      text = 'https://proxy.duckduckgo.com/iu/?u=https%3A%2F%2Fbittrexblobstorage.blob.core.windows.net%2Fpublic%2Fc8ffc302-6f60-4d88-9523-8574e5ccb1db.png&f=1&nofb=1';
+    else if (text.indexOf('1') >= 0)
+      text = 'http://sites.psu.edu/ashtonrclblog/wp-content/uploads/sites/5474/2014/03/Kool-Aid-Man.jpg';
+
+    log('going to try and fetch this url: ' + text)
+    //kick of the registration
+    let register = img.RegisterImage(text);
+    
     input.visible = false;
     test.buttonText = 'Waiting...';
     test.buttonColor = Color4.Yellow();
@@ -434,11 +455,32 @@ input.onTextSubmit = new OnTextSubmit(event =>
     loadingText.color = Color4.Black();
     adapter.AdaptShape(demo.UIAnchor.CENTER, loadingText);
 
-    img.FetchImage(
+    //wait until we have the token
+    let token = await register;
+    log('finished token: ' + token);
+
+    //check the status of the image
+    //...
+
+    
+    //now submit the 
+    let result = await img.FetchImage(
       image,
-      '',
+      token.token,
       1
     );
+
+    test.buttonText = "Finished!";
+    test.buttonColor = Color4.Gray();
+    test.Init();
+
+    loadingText.value = '';
+    image.color = Color4.Clear();
+    
+    if (result)
+      result.visible = true;
+    else
+      log('invalid image result');
   }
 );
 
@@ -459,4 +501,3 @@ test.buttonClickEvent = new OnClick(() =>
 
 //render control to scene
 test.Init();
-*/

@@ -135,6 +135,7 @@ begin
     LResponse.Status := isInProgress;
 
     AResponse.ContentType := 'application/json';
+    AResponse.SetCustomHeader('Access-Control-Allow-Origin', '*');
     Handled := True;
     LogRequester('FetchAction::', ARequest);
 
