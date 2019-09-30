@@ -10,22 +10,8 @@ object BaseController: TBaseController
   ActionVar = 'a'
   CreateSession = False
   Height = 826
-  HorizontalOffset = 3212
+  HorizontalOffset = 1782
   VerticalOffset = 820
   Width = 1168
   PPI = 192
-  object connection: TSQLite3Connection
-    Connected = False
-    LoginPrompt = False
-    KeepConnection = False
-    Transaction = transaction
-    Left = 352
-    Top = 256
-  end
-  object transaction: TSQLTransaction
-    Active = False
-    Database = connection
-    Left = 656
-    Top = 256
-  end
 end

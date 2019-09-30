@@ -123,9 +123,11 @@ begin
   Palette := TBGRAApproxPalette.Create(
     [
       TBGRAPixel.New(255, 0, 0), //red
+      TBGRAPixel.New(188, 143, 143), //pink
       TBGRAPixel.New(0, 255, 0), //green
       TBGRAPixel.New(0, 0, 255), //blue
       TBGRAPixel.New(0, 0, 0), //black
+      TBGRAPixel.New(166, 42, 42), //brown
       TBGRAPixel.New(128, 128, 128), //grey
       TBGRAPixel.New(255, 255, 255), //white
       TBGRAPixel.New(255, 255, 0), //yellow

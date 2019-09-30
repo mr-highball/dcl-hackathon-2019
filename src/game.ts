@@ -332,6 +332,16 @@ const transform_29 = new Transform({
 billboard.addComponentOrReplace(transform_29)
 engine.addEntity(billboard);
 
+//method to reset demo to initial state
+function Reset() : void
+{
+  startButton.buttonColor = Color4.Green();
+  startButton.buttonText = 'Start!';
+  input.visible = false;
+  working = false;
+  startButton.Init();
+}
+
 //create a canvas for our ui elemnts
 let canvas = new UICanvas();
 canvas.width = '100%';
@@ -345,8 +355,7 @@ input.name = 'Please paste in a valid image URL (.png, jpeg, etc...):';
 input.placeholder = 'paste a url...';
 
 let adapter = demo.CreateAlignAdapter(demo.UIAnchor.CENTER);
-input.vAlign = adapter.vertical;
-input.hAlign = adapter.horizontal;
+adapter.AdaptShape(demo.UIAnchor.CENTER, input);
 input.autoStretchWidth = true;
 input.height = 30;
 input.width = 15 * input.placeholder.length;
@@ -356,95 +365,103 @@ input.background = Color4.Gray(); //these don't seem to do anything?
 input.fontSize  = 30;
 input.visible = false;
 
-//-----------------------------------------------------
-/*
-executeTask(async () =>
+//create some instructions
+let instructionsBack = new UIContainerRect(canvas);
+instructionsBack.color = Color4.FromInts(255, 255, 255, 125);
+instructionsBack.width = 300;
+instructionsBack.height = 100;
+adapter.AdaptShape(demo.UIAnchor.TOP_CENTER, instructionsBack);
+
+let instructions = new UIText(instructionsBack);
+instructions.color = Color4.Black();
+instructions.fontSize = 14;
+instructions.width = instructionsBack.width;
+instructions.height = instructionsBack.height;
+instructions.textWrapping = true;
+instructions.fontAutoSize = false;
+adapter.AdaptShape(demo.UIAnchor.CENTER, instructions);
+instructions.value = 'pasting urls currently does not work in DCL so as a convenience,' +
+  ' you can type a number from (1 - 10) and press enter which will use a hard coded url. alternatively,' +
+  ' you can type a url by hand (with some patience). enjoy  :) ';
+instructions.visible = true;
+
+//setup a demo button
+let startButton = new demo.DemoButtonUI(canvas);
+startButton.buttonText = "Start!";
+startButton.anchor = demo.UIAnchor.CENTER_RIGHT;
+startButton.fontAnchor = demo.UIAnchor.CENTER;
+startButton.widthPercentage = 10;
+startButton.heightPercentage = 15;
+startButton.buttonClickEvent = new OnClick(() =>
   {
-      log('1');
-      let result = new UIContainerRect(canvas);
-      log('2');
-      result.visible = false;
-      result.width = 64;
-      result.height = 64;
-      log('3');
-      let response = await fetch(
-          'http://highball.dcl.dev.com:8083/controller/image?a=fetch',
-          {
-              body : JSON.stringify({ image : { token : '{4FA8E3CE-63A1-43CF-9EBF-1480607FFF2A}'}, authentication : { token : '{74DB8A78-D394-43FB-ADA9-F3E6F6963216}'}}),
-              method : 'POST'
-          }
-      ).then(
-        async success =>
-        {
-          log('5');
-          let json = await success.json();
-          log('image service response: ' + json)
-          let c = json as img.ICommands;
-          log('6');
-          
-          //for each of the commands we call draw rect after adapting to the 
-          //our command signature
-          c.commands.forEach(command => 
-              {
-                  img.DrawRect(
-                      result, 
-                      command.topLX, 
-                      command.topLY, 
-                      (command.topRX + 1) - command.topLX, 
-                      (command.botRY + 1) - command.topRY,
-                      Color4.FromInts(
-                          command.r, 
-                          command.g, 
-                          command.b, 
-                          command.a
-                      )
-                  );
+    if (working)
+      return;
 
-                  result.visible = true;
-              }
-          );
-        },
-        failure  =>
-        {
-          log('image service failed: ' + failure);
-        }
-      );    
-    }
+    input.visible = true;
+    working = true;
+
+    if (lastImage)
+      lastImage.visible = false;
+
+    
+  }
 );
-*/
-//-----------------------------------------------------
 
+Reset();
+
+//render control to scene
+startButton.Init();
+
+//flag to prevent double clicks
+let working : boolean = false;
+
+let lastImage : UIShape = null;
 
 //setup the submit event for capturing
 input.onTextSubmit = new OnTextSubmit(async event => 
   {
-    log('the text is: ' + event.text);
+    log('the text is: [' + event.text + ']');
 
     //below are shortcuts since UIInputText doesn't allow pasting at the time of writing
     let text : string = event.text;
     
-    if (text.indexOf('1') >= 0)
+    //text can't directly be compared to value... not sure why, just substringing for now
+    if (text.substr(0, 2) == '10')
+      text = 'http://www.spiritedsingapore.com/wp-content/uploads/2015/04/Highball.jpg';
+    else if (text.substr(0, 2) == '69')
+      text = 'https://www.drawingnow.com/file/pic/gallery/67660_view.jpg';
+    else if (text.substr(0, 1) == '1')
       text = 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Classic_smiley.svg/1026px-Classic_smiley.svg.png';
-    else if (text.indexOf('1') >= 0)
-      text = 'https://illinoisalumni.org/wp-content/uploads/vfb/2016/03/Test-JPEG-2.jpg';
-    else if (text.indexOf('1') >= 0)
-      text = 'https://test-ipv6.com/images/hires_ok.png';
-    else if (text.indexOf('1') >= 0)
-      text = 'https://proxy.duckduckgo.com/iu/?u=https%3A%2F%2Fbittrexblobstorage.blob.core.windows.net%2Fpublic%2Fc8ffc302-6f60-4d88-9523-8574e5ccb1db.png&f=1&nofb=1';
-    else if (text.indexOf('1') >= 0)
-      text = 'http://sites.psu.edu/ashtonrclblog/wp-content/uploads/sites/5474/2014/03/Kool-Aid-Man.jpg';
-
+    else if (text.substr(0, 1) == '2')
+      text = 'https://i.ytimg.com/vi/XiOpyRsQWwc/maxresdefault.jpg';
+    else if (text.substr(0, 1) == '3')
+      text = 'https://i.ytimg.com/vi/PX7zPlQjAr8/maxresdefault.jpg';
+    else if (text.substr(0, 1) == '4')
+      text = 'https://i.ytimg.com/vi/d5XasoYyk8I/hqdefault.jpg';
+    else if (text.substr(0, 1) == '5')
+      text = 'https://seeklogo.net/wp-content/uploads/2016/01/github-octocat-logo-vector-download-400x400.jpg';
+    else if (text.substr(0, 1) == '6')
+      text = 'https://i.ytimg.com/vi/yZQ18hAZMfA/hqdefault.jpg';
+    else if (text.substr(0, 1) == '7')
+      text = 'https://vignette2.wikia.nocookie.net/rickandmorty/images/5/5a/Evil_Morty_Close-Up.png';
+    else if (text.substr(0, 1) == '8')
+      text = 'https://vignette.wikia.nocookie.net/rickandmorty/images/4/4c/Screen_Shot_2017-12-29_at_4.48.33_PM.png';
+    else if (text.substr(0, 1) == '9')
+      text = 'https://i.pinimg.com/736x/fd/69/87/fd698766b20d78fa88fe775546882226--beer-cans-product-packaging.jpg';
+    
     log('going to try and fetch this url: ' + text)
+    
     //kick of the registration
     let register = img.RegisterImage(text);
     
     input.visible = false;
-    test.buttonText = 'Waiting...';
-    test.buttonColor = Color4.Yellow();
-    test.Init();
+    startButton.buttonText = 'Waiting...';
+    startButton.buttonColor = Color4.Yellow();
+    startButton.Init();
 
     //create a container to hold the image
     let image = new UIContainerRect(canvas);
+    lastImage = image;
     image.color = Color4.White();
     let adapter = new demo.AlignAdapter();
     adapter.AdaptShape(demo.UIAnchor.CENTER, image);
@@ -457,47 +474,39 @@ input.onTextSubmit = new OnTextSubmit(async event =>
 
     //wait until we have the token
     let token = await register;
-    log('finished token: ' + token);
+    log('finished token: ' + token.token);
 
     //check the status of the image
-    //...
+    let success = await img.ImageStatus(token);
+    log('finished status: ' + success);
 
-    
-    //now submit the 
-    let result = await img.FetchImage(
-      image,
-      token.token,
-      1
-    );
-
-    test.buttonText = "Finished!";
-    test.buttonColor = Color4.Gray();
-    test.Init();
-
-    loadingText.value = '';
-    image.color = Color4.Clear();
-    
-    if (result)
-      result.visible = true;
+    if (success)
+    {
+      //now submit the 
+      let result = await img.FetchImage(
+        image,
+        token,
+        4
+      );
+  
+      startButton.buttonText = "Finished!";
+      startButton.buttonColor = Color4.Gray();
+      startButton.Init();
+  
+      loadingText.value = '';
+      image.color = Color4.Clear();
+      
+      if (result)
+        result.visible = true;
+      else
+        log('invalid image result');
+    }
     else
-      log('invalid image result');
+    {
+      log('unable to retrieve image');
+    } 
+
+    //reset input / start button
+    Reset();
   }
 );
-
-//setup a demo button
-let test = new demo.DemoButtonUI(canvas);
-test.buttonText = "Start!";
-test.anchor = demo.UIAnchor.CENTER_RIGHT;
-test.fontAnchor = demo.UIAnchor.CENTER;
-test.widthPercentage = 10;
-test.heightPercentage = 15;
-test.buttonColor = Color4.Green();
-test.fontColor = Color4.White();
-test.buttonClickEvent = new OnClick(() =>
-  {
-    input.visible = true;
-  }
-);
-
-//render control to scene
-test.Init();

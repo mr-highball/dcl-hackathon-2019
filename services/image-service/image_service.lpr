@@ -20,7 +20,9 @@ var
   LError: String;
   LTest : TRegisterURLRequest;
 begin
-  WriteLn(LTest.ToJSON);
+  CONTROLLER_LOG_TYPES := [];
+
+  WriteLn('image service starting...');
   //create and load config if one exists
   LConfig := CreateJSONConfig;
 
@@ -29,8 +31,8 @@ begin
     LConfig.UpsertValue('port', '8083'); //set default port
     LConfig.UpsertValue('databaseName', 'image_service.sqlite3'); //default db name
     LConfig.UpsertValue('authServiceAddress', '127.0.0.1:8081'); //default db name
-    LConfig.UpsertValue('maxImageWidth', '64');
-    LConfig.UpsertValue('maxImageHeight', '64');
+    LConfig.UpsertValue('maxImageWidth', '48');
+    LConfig.UpsertValue('maxImageHeight', '48');
 
     if not LConfig.SaveToFile(CONFIG_NAME, LError) then
       WriteLn(LError);
@@ -46,8 +48,8 @@ begin
   AUTH_ADDRESS := LConfig['authServiceAddress'];
 
   //update the max dimensions
-  MAX_IMAGE_WIDTH := StrToIntDef(LConfig['maxImageWidth'], 64);
-  MAX_IMAGE_HEIGHT := StrToIntDef(LConfig['maxImageHeight'], 64);
+  MAX_IMAGE_WIDTH := StrToIntDef(LConfig['maxImageWidth'], 48);
+  MAX_IMAGE_HEIGHT := StrToIntDef(LConfig['maxImageHeight'], 48);
 
   //init web app
   Application.Title:='image_service';

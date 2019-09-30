@@ -1,3 +1,6 @@
+let IMAGE_SERVICE_ROOT : string = 'http://highball.dcl.dev.com:8083'
+export default IMAGE_SERVICE_ROOT;
+
 export interface ICommand 
 {
     topLX: number;
@@ -24,6 +27,18 @@ export interface IImageToken
     token : string;
 }
   
+export interface IImageStatus
+{
+    status : string;
+}
+
+export enum ImageStatuses
+{
+    IN_PROGRESS = 'In-Progress',
+    COMPLETED = 'Completed',
+    FAILED = 'Failed'
+}
+
 export function DupeStr(value : string, amount : number) : string
 {
     let result = "";
@@ -35,6 +50,19 @@ export function DupeStr(value : string, amount : number) : string
     return result;
 }
 
+function Sleep(amount : number)
+{
+    //record starting time
+    let start = new Date();
+    start.getDate();
+
+    while(true)
+    {
+        //subtract msecs of now / then to determine if amount has been reached
+        if (Date.now() - start.getTime() > amount)
+            return;
+    }
+}
 
 export function DrawRect(canvas : UIShape, x : number, y : number, width : number, height : number, color : Color4) : void
 {
@@ -59,12 +87,14 @@ export async function RegisterImage(
     url : string
 ) : Promise<IImageToken>
 {
+    log('RegisterImage::url is [' + url + ']');
+
     return new Promise<IImageToken>(async (resolve, reject) =>
         {
             let task = await fetch(
-                'http://highball.dcl.dev.com:8083/controller/registration?a=register',
+                IMAGE_SERVICE_ROOT + '/controller/registration?a=register',
                 {
-                    body : JSON.stringify({ validation : { url : url, validation : { token :  ''} }, authentication : { userKey : '', parcelIdentity : '0,0' } }),
+                    body : JSON.stringify({ validation : { url : url, validation : { token :  'notusedrightnow'} }, authentication : { userKey : '0xblahblah', parcelIdentity : '0,0' } }),
                     method : 'POST'
                 }
             ).then(
@@ -79,35 +109,101 @@ export async function RegisterImage(
                         }
                         catch (error)
                         {
-                            reject(null);
+                            reject('RegisterImage::' + error);
                         }        
                     },
                 failure =>
                     {
-                        reject(null);
+                        reject('RegisterImage::failed to register');
                     }
             )
         }
     );
 }
 
+export async function ImageStatus(
+    token : IImageToken
+) : Promise<boolean>
+{
+    log('ImageStatus::token is [' + token + ']');
+    const RETRY_COUNT = 5;
+
+    return new Promise<boolean>(async (resolve, reject) =>
+        {
+            let count = 0;
+
+            while (count < RETRY_COUNT)
+            {
+                await fetch(
+                    IMAGE_SERVICE_ROOT + '/controller/status?a=fetch',
+                    {
+                        body : JSON.stringify(token),
+                        method : 'POST'
+                    }
+                ).then(
+                    async success =>
+                        {
+                            try
+                            {
+                                log('attempt: ' + count);
+                                let json = await success.json();
+                                let result = json as IImageStatus;
+
+                                if (result.status === ImageStatuses.COMPLETED)
+                                {
+                                    log('ImageStatus::completed status for token [' + token.token + ']');
+                                    resolve(true);
+                                    count = RETRY_COUNT;
+                                    return;
+                                }
+                                else if (result.status === ImageStatuses.FAILED)
+                                {
+                                    log('ImageStatus::failed status for token [' + token.token + ']');
+                                    resolve(false);
+                                    count = RETRY_COUNT;
+                                    return;
+                                }
+                            }
+                            catch (error)
+                            {
+                                log('ImageStatus::handled exception [' + error + ']')
+                            }        
+                        },
+                    failure =>
+                        {
+                            log('ImageStatus::OnRejected reached')
+                        }
+                ); 
+
+                //increment counter 
+                ++count;
+                Sleep(2000);
+            }
+
+            log('ImageStatus::maximum tries exceeded')
+            resolve(false);
+        }
+    );
+}
+
 export async function FetchImage(
     parent : UIShape, //can be the canvas or any other parent
-    token : string, //image token provided by the call to register
+    token : IImageToken, //image token provided by the call to register
     scale : number = 1.0 //a multiplier that can be applied to the final result image
 ) : Promise<UIShape>
 {
     
     return new Promise<UIShape>((resolve, reject) =>
         {
-
+            let s = scale > 0 ? scale : 1;
+            
             executeTask(async () =>
                 {
                     
                     let response = await fetch(
-                        'http://highball.dcl.dev.com:8083/controller/image?a=fetch',
+                        IMAGE_SERVICE_ROOT + '/controller/image?a=fetch',
                         {
-                            body : JSON.stringify({ image : { token : '{4FA8E3CE-63A1-43CF-9EBF-1480607FFF2A}'}, authentication : { token : '{74DB8A78-D394-43FB-ADA9-F3E6F6963216}'}}),
+                            body : JSON.stringify({ image : token, authentication : { token : '{74DB8A78-D394-43FB-ADA9-F3E6F6963216}'}}),
                             method : 'POST'
                         }
                     ).then(
@@ -118,8 +214,10 @@ export async function FetchImage(
                             {
                                 let result = new UIContainerRect(parent);
                                 result.visible = false;
-                                result.width = 64;
-                                result.height = 64;
+                                
+                                //todo - these need to come from the response object, not hardcoded
+                                result.width = 48 * s;
+                                result.height = 48 * s;
                                 let c = json as ICommands;
                                 
                                 //for each of the commands we call draw rect after adapting to the 
@@ -128,10 +226,10 @@ export async function FetchImage(
                                     {
                                         DrawRect(
                                             result, 
-                                            command.topLX, 
-                                            command.topLY, 
-                                            (command.topRX + 1) - command.topLX, 
-                                            (command.botRY + 1) - command.topRY,
+                                            command.topLX * s, 
+                                            command.topLY * s, 
+                                            ((command.topRX + 1) - command.topLX) * s, 
+                                            ((command.botRY + 1) - command.topRY) * s,
                                             Color4.FromInts(
                                                 command.r, 
                                                 command.g, 

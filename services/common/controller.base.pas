@@ -49,8 +49,6 @@ type
     to override for consistency across dcl micro services
   *)
   TBaseController = class(TFPWebModule)
-    connection: TSQLite3Connection;
-    transaction: TSQLTransaction;
     //default health check event
     procedure DataModuleGetAction(Sender: TObject; ARequest: TRequest;
       var ActionName: String);
@@ -166,6 +164,8 @@ type
 var
   DEFAULT_DB_NAME : String;
   CONTROLLER_LOG_TYPES : TControllerLogTypes;
+  connection : TSQLite3Connection;
+  transaction : TSQLTransaction;
 
 function GetControllerRoute(Const AAction : String) : String;
 
@@ -245,10 +245,11 @@ begin
     FName := DEFAULT_DB_NAME;
   end;
 
-  connection.Close(true);
-  connection.DatabaseName := FullPath;
-  connection.Open;
-  connection.Close;
+  if not connection.Connected then
+  begin
+    connection.DatabaseName := FullPath;
+    connection.Open;
+  end;
 end;
 
 procedure TBaseController.HealthCheck(Sender: TObject; ARequest: TRequest;
@@ -355,30 +356,22 @@ begin
 end;
 
 function TBaseController.ExecuteSQL(const ASQL: String; out Error: String): Boolean;
+var
+  LQuery : TSQLQuery;
 begin
   Result := False;
 
   try
-    connection.Close;
-    connection.Open;
-
+    //create a query
+    LQuery := TSQLQuery.Create(nil);
     try
-      //begin a transaction
-      transaction.StartTransaction;
-      try
-        //attempt to execute sql
-        connection.ExecuteDirect(ASQL);
-
-        //commit transaction the disk
-        transaction.Commit;
-
-        Result := True;
-      finally
-        transaction.EndTransaction;
-      end;
-
+      LQuery.SQLConnection := connection;
+      LQuery.SQL.Text := ASQL;
+      LQuery.ExecSQL;
+      Result := True;
     finally
-      connection.Close;
+      connection.Transaction.CommitRetaining;
+      LQuery.Free;
     end;
   except on E : Exception do
   begin
@@ -409,16 +402,11 @@ begin
   LQuery := TSQLQuery.Create(nil);
   try
     try
-      connection.Close;
-
       //init query
       LQuery.SQLConnection := connection;
       LQuery.ReadOnly := True;
       LQuery.UniDirectional := True; //discards records after reading, smaller footprint
       LQuery.SQL.Text := ASQL;
-
-      //open the connection
-      connection.Open;
 
       //now we can open the query for reading
       LQuery.Open;
@@ -471,7 +459,6 @@ begin
         end;
       finally
         LQuery.Close;
-        connection.Close;
       end;
 
       //success
@@ -583,11 +570,16 @@ begin
 end;
 
 initialization
+  connection := TSQLite3Connection.Create(nil);
+  transaction := TSQLTransaction.Create(connection);
+  connection.Transaction := transaction;
   DEFAULT_DB_NAME := 'database.sqlite3';
   CONTROLLER_LOG_TYPES := [clInfo, clWarn, clError];
   FLog := TEventLog.Create(nil);
 finalization
   FLog.Active := False;
   FLog.Free;
+  connection.Close();
+  connection.free;
 end.
 
