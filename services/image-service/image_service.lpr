@@ -23,7 +23,7 @@ var
   LError: String;
   LTest : TRegisterURLRequest;
 begin
-  CONTROLLER_LOG_TYPES := [clInfo, clWarn, clError];
+  CONTROLLER_LOG_TYPES := [];
 
   WriteLn('image service starting...');
   //create and load config if one exists
