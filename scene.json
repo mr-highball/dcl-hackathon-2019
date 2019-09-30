@@ -1,18 +1,18 @@
 {
   "display": {
-    "title": "interactive-text",
+    "title": "game-jam-2019",
     "favicon": "favicon_asset"
   },
   "contact": {
     "name": "highball",
     "email": ""
   },
-  "owner": "",
+  "owner": "0x49c7e72b79aea0b2be30fc82aa079b74e1c323da",
   "scene": {
     "parcels": [
-      "0,0"
+      "110,-30"
     ],
-    "base": "0,0"
+    "base": "110,-30"
   },
   "communications": {
     "type": "webrtc",

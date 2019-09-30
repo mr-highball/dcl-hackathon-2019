@@ -13,7 +13,11 @@ uses
   SQLite3Conn,
   SQLDB,
   eventlog,
-  controller.dto;
+  controller.dto,
+  openssl,
+  sslbase,
+  opensslsockets,
+  sslsockets;
 
 type
 
@@ -42,6 +46,23 @@ type
 
   //controller action array
   TActions = TArray<TAction>;
+
+  { TControllerCertificate }
+
+  TControllerCertificate = class(TX509Certificate)
+  public
+    function CreateCertificateAndKey: TCertAndKey; override;
+  end;
+
+  { TControllerSSLHandler }
+
+  TControllerSSLHandler = class(TSSLSocketHandler)
+  private
+  protected
+    function CreateCertificateData: TCertificateData; override;
+    function CreateCertGenerator: TX509Certificate; override;
+  public
+  end;
 
   { TBaseController }
   (*
@@ -164,6 +185,9 @@ type
 var
   DEFAULT_DB_NAME : String;
   CONTROLLER_LOG_TYPES : TControllerLogTypes;
+  CERT_PASSPHRASE : String;
+  CERT_PRIVATE_FILE : String;
+  CERT_PUBLIC_FILE : String;
   connection : TSQLite3Connection;
   transaction : TSQLTransaction;
 
@@ -183,6 +207,56 @@ begin
 end;
 
 {$R *.lfm}
+
+{ TControllerCertificate }
+
+function TControllerCertificate.CreateCertificateAndKey: TCertAndKey;
+var
+  LData : TMemoryStream;
+  LBuf : TBytes;
+begin
+  if not FileExists(CERT_PUBLIC_FILE) then
+    raise Exception.Create('Controller::Base::CERT_PUBLIC_FILE not set to a valid file');
+
+  if not FileExists(CERT_PRIVATE_FILE) then
+    raise Exception.Create('Controller::Base::CERT_PRIVATE_FILE not set to a valid file');
+
+  LData := TMemoryStream.Create;
+  try
+    //load public key contents
+    LData.LoadFromFile(CERT_PUBLIC_FILE);
+    SetLength(LBuf, LData.Size);
+    LData.ReadBuffer(LBuf, LData.Size);
+    Result.Certificate := LBuf;
+
+    //clear stream
+    LData.Clear;
+
+    //load private key contents
+    LData.LoadFromFile(CERT_PRIVATE_FILE);
+    SetLength(LBuf, LData.Size);
+    LData.ReadBuffer(LBuf, LData.Size);
+    Result.PrivateKey := LBuf;
+  finally
+    LData.Free;
+  end;
+end;
+
+{ TControllerSSLHandler }
+
+function TControllerSSLHandler.CreateCertificateData: TCertificateData;
+begin
+  Result:=inherited CreateCertificateData;
+
+  Result.KeyPassword := CERT_PASSPHRASE;
+  Result.Certificate.FileName := CERT_PUBLIC_FILE;
+  Result.PrivateKey.FileName := CERT_PRIVATE_FILE;
+end;
+
+function TControllerSSLHandler.CreateCertGenerator: TX509Certificate;
+begin
+  Result := TControllerCertificate.Create;
+end;
 
 { TBaseController }
 
@@ -575,6 +649,10 @@ initialization
   connection.Transaction := transaction;
   DEFAULT_DB_NAME := 'database.sqlite3';
   CONTROLLER_LOG_TYPES := [clInfo, clWarn, clError];
+  CERT_PASSPHRASE := 'changeMe';
+  CERT_PRIVATE_FILE := 'key.pem';
+  CERT_PUBLIC_FILE := 'cert.pem';
+  TSSLSocketHandler.SetDefaultHandlerClass(TControllerSSLHandler);
   FLog := TEventLog.Create(nil);
 finalization
   FLog.Active := False;

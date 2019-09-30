@@ -21,7 +21,6 @@ const
 var
   LConfig : IJSONConfig;
   LError: String;
-  LTest : TRegisterURLRequest;
 begin
   CONTROLLER_LOG_TYPES := [];
 
@@ -36,6 +35,10 @@ begin
     LConfig.UpsertValue('authServiceAddress', '127.0.0.1:8081'); //default db name
     LConfig.UpsertValue('maxImageWidth', '48');
     LConfig.UpsertValue('maxImageHeight', '48');
+    LConfig.UpsertValue('useSSL', 'true');
+    LConfig.UpsertValue('sslPublicKeyFile', CERT_PUBLIC_FILE);
+    LConfig.UpsertValue('sslPrivateKeyFile', CERT_PRIVATE_FILE);
+    LConfig.UpsertValue('sslPrivateKeyPassphrase', CERT_PASSPHRASE);
 
     if not LConfig.SaveToFile(CONFIG_NAME, LError) then
       WriteLn(LError);
@@ -54,8 +57,14 @@ begin
   MAX_IMAGE_WIDTH := StrToIntDef(LConfig['maxImageWidth'], 48);
   MAX_IMAGE_HEIGHT := StrToIntDef(LConfig['maxImageHeight'], 48);
 
+  //update ssl info
+  CERT_PUBLIC_FILE := LConfig['sslPublicKeyFile'];
+  CERT_PRIVATE_FILE := LConfig['sslPrivateKeyFile'];
+  CERT_PASSPHRASE := LConfig['sslPrivateKeyPassphrase'];
+
   //init web app
   Application.Title:='image_service';
+  Application.UseSSL := StrToBoolDef(LConfig['useSSL'], True);
   Application.Port:=StrToIntDef(LConfig['port'], 8083); //shouldn't fail, but default here
   Application.Threaded:=True; //thread for every request
   Application.Initialize;
