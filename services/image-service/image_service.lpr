@@ -3,6 +3,9 @@ program image_service;
 {$mode delphi}{$H+}
 
 uses
+  {$IFDEF UNIX}
+  cthreads,
+  {$ENDIF}
   SysUtils,
   fphttpapp,
   config.types,
@@ -20,7 +23,7 @@ var
   LError: String;
   LTest : TRegisterURLRequest;
 begin
-  CONTROLLER_LOG_TYPES := [];
+  CONTROLLER_LOG_TYPES := [clInfo, clWarn, clError];
 
   WriteLn('image service starting...');
   //create and load config if one exists
