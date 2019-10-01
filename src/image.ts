@@ -1,4 +1,4 @@
-let IMAGE_SERVICE_ROOT : string = 'https://highballs.world'
+let IMAGE_SERVICE_ROOT : string = 'https://highballs.world';//'http://highball.dcl.dev.com:8083';
 export default IMAGE_SERVICE_ROOT;
 
 export interface ICommand 
@@ -88,6 +88,7 @@ export async function RegisterImage(
 ) : Promise<IImageToken>
 {
     log('RegisterImage::url is [' + url + ']');
+    log('RegisterImage::endpoint is [' + IMAGE_SERVICE_ROOT + '/controller/registration?a=register' + ']');
 
     return new Promise<IImageToken>(async (resolve, reject) =>
         {
@@ -126,6 +127,7 @@ export async function ImageStatus(
 ) : Promise<boolean>
 {
     log('ImageStatus::token is [' + token + ']');
+    log('ImageStatus::endpoint is [' + IMAGE_SERVICE_ROOT + '/controller/status?a=fetch' + ']');
     const RETRY_COUNT = 5;
 
     return new Promise<boolean>(async (resolve, reject) =>

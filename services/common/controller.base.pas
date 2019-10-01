@@ -652,7 +652,7 @@ initialization
   CERT_PASSPHRASE := 'changeMe';
   CERT_PRIVATE_FILE := 'key.pem';
   CERT_PUBLIC_FILE := 'cert.pem';
-  TSSLSocketHandler.SetDefaultHandlerClass(TControllerSSLHandler);
+  //TSSLSocketHandler.SetDefaultHandlerClass(TControllerSSLHandler);
   FLog := TEventLog.Create(nil);
 finalization
   FLog.Active := False;

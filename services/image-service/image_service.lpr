@@ -35,7 +35,7 @@ begin
     LConfig.UpsertValue('authServiceAddress', '127.0.0.1:8081'); //default db name
     LConfig.UpsertValue('maxImageWidth', '48');
     LConfig.UpsertValue('maxImageHeight', '48');
-    LConfig.UpsertValue('useSSL', 'true');
+    LConfig.UpsertValue('useSSL', 'false');
     LConfig.UpsertValue('sslPublicKeyFile', CERT_PUBLIC_FILE);
     LConfig.UpsertValue('sslPrivateKeyFile', CERT_PRIVATE_FILE);
     LConfig.UpsertValue('sslPrivateKeyPassphrase', CERT_PASSPHRASE);
@@ -64,7 +64,7 @@ begin
 
   //init web app
   Application.Title:='image_service';
-  Application.UseSSL := StrToBoolDef(LConfig['useSSL'], True);
+  Application.UseSSL := StrToBoolDef(LConfig['useSSL'], False);
   Application.Port:=StrToIntDef(LConfig['port'], 8083); //shouldn't fail, but default here
   Application.Threaded:=True; //thread for every request
   Application.Initialize;
