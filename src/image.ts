@@ -1,4 +1,4 @@
-let IMAGE_SERVICE_ROOT : string = 'http://167.71.81.160:8083'
+let IMAGE_SERVICE_ROOT : string = 'https://highballs.world'
 export default IMAGE_SERVICE_ROOT;
 
 export interface ICommand 

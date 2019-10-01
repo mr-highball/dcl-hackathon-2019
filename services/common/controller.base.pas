@@ -247,7 +247,7 @@ end;
 function TControllerSSLHandler.CreateCertificateData: TCertificateData;
 begin
   Result:=inherited CreateCertificateData;
-
+  Result.HostName := '127.0.0.1';
   Result.KeyPassword := CERT_PASSPHRASE;
   Result.Certificate.FileName := CERT_PUBLIC_FILE;
   Result.PrivateKey.FileName := CERT_PRIVATE_FILE;
